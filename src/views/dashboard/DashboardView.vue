@@ -27,7 +27,7 @@ const simResult = ref({ currentMargin: 20.2, simulatedMargin: 18.7, simulatedNet
 const fetchForecasting = async () => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.get(`http://localhost:5000/api/dashboard/stock-forecasting?type=${forecastTab.value}`, {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/dashboard/stock-forecasting?type=${forecastTab.value}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) forecastData.value = res.data.data
@@ -44,7 +44,7 @@ const sendCopilotMessage = async () => {
 
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.post('http://localhost:5000/api/dashboard/ai-copilot', { question: userText }, {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/dashboard/ai-copilot`, { question: userText }, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) {
@@ -63,7 +63,7 @@ const sendCopilotMessage = async () => {
 const runSimulator = async () => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.post('http://localhost:5000/api/dashboard/margin-simulator', {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/dashboard/margin-simulator`, {
             materialIncreasePct: Number(matIncrease.value),
             priceAdjustmentPct: Number(priceAdjust.value)
         }, {
@@ -79,8 +79,8 @@ const fetchDashboardData = async () => {
     try {
         const token = localStorage.getItem('token')
         const [wasteRes, basketRes] = await Promise.all([
-            axios.get('http://localhost:5000/api/dashboard/waste-analysis', { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get('http://localhost:5000/api/dashboard/product-trends', { headers: { Authorization: `Bearer ${token}` } })
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/dashboard/waste-analysis`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/dashboard/product-trends`, { headers: { Authorization: `Bearer ${token}` } })
         ])
         if (wasteRes.data.status) wasteData.value = wasteRes.data.data
         if (basketRes.data.status) basketData.value = basketRes.data.data.affinities
@@ -148,7 +148,8 @@ onMounted(() => {
                             class="font-bold text-slate-800">+15.8% ($142,500.00)</span> driven by higher afternoon
                         specialty beverage sales and retail whole-bean packages. Operating margin remains healthy at
                         <span class="font-bold text-slate-800">20.2% ($28,780.00 net profit)</span> despite an 8.4% rise
-                        in wholesale raw milk costs.</p>
+                        in wholesale raw milk costs.
+                    </p>
                 </div>
             </div>
         </div>
@@ -184,7 +185,7 @@ onMounted(() => {
                             <div v-if="msg.tags" class="flex flex-wrap gap-1 pt-1">
                                 <span v-for="tag in msg.tags" :key="tag"
                                     class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md text-[9px] font-bold">{{
-                                    tag }}</span>
+                                        tag }}</span>
                             </div>
                         </div>
                         <p class="text-[9px] text-slate-400 mt-1 px-1">{{ msg.time }}</p>
@@ -240,7 +241,7 @@ onMounted(() => {
                                 <td class="py-2.5 px-3 font-extrabold text-slate-900">{{ item.currentStock }}</td>
                                 <td class="py-2.5 px-3"><span
                                         class="px-2 py-0.5 bg-indigo-50 text-indigo-600 font-bold rounded-md text-[10px]">{{
-                                        item.recommendation }}</span></td>
+                                            item.recommendation }}</span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -306,7 +307,7 @@ onMounted(() => {
                         </div>
                         <span
                             :class="['px-2 py-0.5 rounded-md font-bold text-[10px]', b.status === 'Optimal' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600']">{{
-                            b.status }}</span>
+                                b.status }}</span>
                     </div>
                 </div>
             </div>
@@ -341,7 +342,7 @@ onMounted(() => {
                             <td class="py-3 px-4">
                                 <span
                                     class="px-2.5 py-1 bg-slate-100 text-slate-700 font-bold rounded-full text-[10px] border border-slate-200">{{
-                                    row.strategyBadge }}</span>
+                                        row.strategyBadge }}</span>
                             </td>
                         </tr>
                     </tbody>

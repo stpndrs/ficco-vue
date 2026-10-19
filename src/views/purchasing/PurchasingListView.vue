@@ -36,7 +36,7 @@ const showToast = (message, type = 'success') => {
 const fetchSuppliers = async () => {
 	try {
 		const token = localStorage.getItem('token')
-		const res = await axios.get('http://localhost:5000/api/purchasing/suppliers', {
+		const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/purchasing/suppliers`, {
 			headers: { Authorization: `Bearer ${token}` }
 		})
 		if (res.data.status) suppliers.value = res.data.data
@@ -49,7 +49,7 @@ const fetchpurchasing = async () => {
 	isLoading.value = true
 	try {
 		const token = localStorage.getItem('token')
-		let url = 'http://localhost:5000/api/purchasing?limit=50'
+		let url = `${import.meta.env.VITE_APP_API_URL}/api/purchasing?limit=50`
 		if (search.value) url += `&search=${search.value}`
 		if (statusFilter.value !== 'All Statuses') url += `&status=${statusFilter.value}`
 
@@ -79,11 +79,11 @@ const handleSaveSupplier = async () => {
 		const token = localStorage.getItem('token')
 		let res
 		if (isEditSupplier.value) {
-			res = await axios.put(`http://localhost:5000/api/purchasing/suppliers/${supplierForm.value.id}`, supplierForm.value, {
+			res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/purchasing/suppliers/${supplierForm.value.id}`, supplierForm.value, {
 				headers: { Authorization: `Bearer ${token}` }
 			})
 		} else {
-			res = await axios.post('http://localhost:5000/api/purchasing/suppliers', supplierForm.value, {
+			res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/purchasing/suppliers`, supplierForm.value, {
 				headers: { Authorization: `Bearer ${token}` }
 			})
 		}
@@ -103,7 +103,7 @@ const deleteSupplier = async (id) => {
 	if (!confirm('Hapus supplier ini?')) return
 	try {
 		const token = localStorage.getItem('token')
-		const res = await axios.delete(`http://localhost:5000/api/purchasing/suppliers/${id}`, {
+		const res = await axios.delete(`${import.meta.env.VITE_APP_API_URL}/api/purchasing/suppliers/${id}`, {
 			headers: { Authorization: `Bearer ${token}` }
 		})
 		if (res.data.status) {
@@ -283,7 +283,7 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
 								new
 									Date(selectedPO.createdAt).toISOString().split('T')[0] }}</p>
 							<h4 class="text-sm font-extrabold text-slate-900 mt-0.5">
-								{{ selectedPO.material?.name || selectedPO.itemName || 'Ethiopian Yirgacheffe Green								Beans(100 lbs)' }}
+								{{ selectedPO.material?.name || selectedPO.itemName || 'Ethiopian Yirgacheffe Green Beans(100 lbs)' }}
 							</h4>
 							<p class="text-[10px] text-slate-400 mt-1">
 								Type / Classification: <span class="font-bold text-slate-600">{{ selectedPO.category ||

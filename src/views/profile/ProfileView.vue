@@ -21,7 +21,7 @@ const fetchProfile = async () => {
         const token = localStorage.getItem('token')
         // ID didapatkan dari user context/localStorage
         const userId = localStorage.getItem('userId') || '1'
-        const res = await axios.get(`http://localhost:5000/api/user/profile/${userId}`, {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/user/profile/${userId}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
 

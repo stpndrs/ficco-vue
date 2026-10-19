@@ -23,7 +23,7 @@ const fetchProductionBatches = async () => {
     isLoading.value = true
     try {
         const token = localStorage.getItem('token')
-        let url = 'http://localhost:5000/api/production?limit=50'
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/production?limit=50`
         if (search.value) url += `&search=${search.value}`
 
         const res = await axios.get(url, {

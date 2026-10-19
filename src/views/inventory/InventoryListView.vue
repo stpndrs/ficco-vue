@@ -21,7 +21,7 @@ const showDetailModal = ref(false)
 const fetchCategories = async () => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.get('http://localhost:5000/api/products/categories', {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products/categories`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) categories.value = res.data.data
@@ -34,7 +34,7 @@ const fetchInventory = async () => {
     isLoading.value = true
     try {
         const token = localStorage.getItem('token')
-        let url = `http://localhost:5000/api/products?page=${currentPage.value}&limit=10`
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/products?page=${currentPage.value}&limit=10`
         if (search.value) url += `&search=${search.value}`
         if (selectedCategory.value !== 'All') url += `&categoryId=${selectedCategory.value}`
 

@@ -20,7 +20,7 @@ const form = ref({
 const fetchPO = async () => {
 	try {
 		const token = localStorage.getItem('token')
-		const res = await axios.get(`http://localhost:5000/api/purchasing/${route.params.id}`, {
+		const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/purchasing/${route.params.id}`, {
 			headers: { Authorization: `Bearer ${token}` }
 		})
 		if (res.data.status) {
@@ -46,7 +46,7 @@ const handleSaveChanges = async () => {
 	isSubmitting.value = true
 	try {
 		const token = localStorage.getItem('token')
-		const res = await axios.put(`http://localhost:5000/api/purchasing/${form.value.id}`, {
+		const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/purchasing/${form.value.id}`, {
 			status: form.value.status,
 			notes: form.value.notes
 		}, {

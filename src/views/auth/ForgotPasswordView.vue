@@ -14,7 +14,7 @@ const handleForgotPassword = async () => {
     message.value = ''
 
     try {
-        const res = await axios.post('http://localhost:5000/api/auth/forgot-password', {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/auth/forgot-password`, {
             username: email.value
         })
 

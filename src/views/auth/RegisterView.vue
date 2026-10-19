@@ -29,7 +29,7 @@ const handleRegister = async () => {
             ...form.value,
             initialCapital: Number(form.value.initialCapital)
         }
-        const res = await axios.post('http://localhost:5000/api/auth/register', payload)
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/auth/register`, payload)
         if (res.data.status) {
             router.push('/login')
         }

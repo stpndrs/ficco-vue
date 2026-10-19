@@ -14,7 +14,7 @@ const showDetailModal = ref(false)
 const fetchTransactions = async () => {
     try {
         const token = localStorage.getItem('token')
-        let url = 'http://localhost:5000/api/sales?limit=50'
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/sales?limit=50`
         if (search.value) url += `&search=${search.value}`
         if (statusFilter.value !== 'All') url += `&status=${statusFilter.value}`
 
@@ -30,7 +30,7 @@ onMounted(fetchTransactions)
 const openDetails = async (id) => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.get(`http://localhost:5000/api/sales/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/sales/${id}`, { headers: { Authorization: `Bearer ${token}` } })
         if (res.data.status) {
             selectedTx.value = res.data.data
             showDetailModal.value = true
@@ -44,7 +44,7 @@ const cancelTx = async (id) => {
     if (!confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')) return
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.patch(`http://localhost:5000/api/sales/${id}/cancel`, {}, { headers: { Authorization: `Bearer ${token}` } })
+        const res = await axios.patch(`${import.meta.env.VITE_APP_API_URL}/api/sales/${id}/cancel`, {}, { headers: { Authorization: `Bearer ${token}` } })
         if (res.data.status) fetchTransactions()
     } catch (err) {
         alert(err.response?.data?.message || 'Gagal membatalkan transaksi')
@@ -146,7 +146,7 @@ const formatCurrency = (v) => `$${Number(v || 0).toFixed(2)}`
                 <div>
                     <h3 class="text-base font-bold text-slate-900">Order Details #{{ selectedTx.code }}</h3>
                     <p class="text-xs text-slate-400">Recorded on {{ new Date(selectedTx.createdAt).toLocaleDateString()
-                        }} - Method: {{ selectedTx.paymentMethod }}</p>
+                    }} - Method: {{ selectedTx.paymentMethod }}</p>
                 </div>
 
                 <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
@@ -185,7 +185,7 @@ const formatCurrency = (v) => `$${Number(v || 0).toFixed(2)}`
                         formatCurrency(selectedTx.totalPrice) }}</span></div>
                     <div class="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-100">
                         <span>Total Paid</span><span class="text-indigo-600">{{ formatCurrency(selectedTx.totalPrice)
-                            }}</span>
+                        }}</span>
                     </div>
                 </div>
 

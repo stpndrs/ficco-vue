@@ -32,7 +32,7 @@ const handleSave = async () => {
             notes: form.value.notes || null
         }
 
-        const res = await axios.post('http://localhost:5000/api/operationals', payload, {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/operationals`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         })
 

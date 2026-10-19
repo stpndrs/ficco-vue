@@ -27,8 +27,8 @@ const fetchData = async () => {
     try {
         const token = localStorage.getItem('token')
         const [catRes, prodRes] = await Promise.all([
-            axios.get('http://localhost:5000/api/products/categories', { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get('http://localhost:5000/api/products?limit=50', { headers: { Authorization: `Bearer ${token}` } })
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products/categories`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products?limit=50`, { headers: { Authorization: `Bearer ${token}` } })
         ])
         if (catRes.data.status) categories.value = catRes.data.data
         if (prodRes.data.status) products.value = prodRes.data.data
@@ -83,7 +83,7 @@ const handlePlaceOrder = async (isDraft = false) => {
             items: cart.value.map((i) => ({ productId: i.productId, qty: i.qty, price: i.price }))
         }
 
-        const res = await axios.post('http://localhost:5000/api/sales', payload, {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/sales`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         })
 
@@ -243,7 +243,7 @@ const formatCurrency = (v) => `$${Number(v || 0).toFixed(2)}`
 
                     <div class="space-y-1.5 pt-4 border-t border-slate-100 mt-4 text-xs">
                         <div class="flex justify-between text-slate-500"><span>Subtotal</span><span>{{
-                                formatCurrency(subtotal) }}</span></div>
+                            formatCurrency(subtotal) }}</span></div>
                         <div class="flex justify-between text-slate-500"><span>Discount</span><span
                                 class="text-emerald-600">-$0.00</span></div>
                         <div

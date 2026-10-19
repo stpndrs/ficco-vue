@@ -27,8 +27,8 @@ const fetchDropdowns = async () => {
 	try {
 		const token = localStorage.getItem('token')
 		const [supRes, matRes] = await Promise.all([
-			axios.get('http://localhost:5000/api/purchasing/suppliers', { headers: { Authorization: `Bearer ${token}` } }),
-			axios.get('http://localhost:5000/api/materials', { headers: { Authorization: `Bearer ${token}` } })
+			axios.get(`${import.meta.env.VITE_APP_API_URL}/api/purchasing/suppliers`, { headers: { Authorization: `Bearer ${token}` } }),
+			axios.get(`${import.meta.env.VITE_APP_API_URL}/api/materials`, { headers: { Authorization: `Bearer ${token}` } })
 		])
 
 		if (supRes.data.status) {
@@ -85,7 +85,7 @@ const handleSave = async () => {
 			paymentProof: form.value.paymentProof
 		}
 
-		const res = await axios.post('http://localhost:5000/api/purchasing', payload, {
+		const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/purchasing`, payload, {
 			headers: { Authorization: `Bearer ${token}` }
 		})
 

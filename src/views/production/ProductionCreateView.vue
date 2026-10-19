@@ -27,8 +27,8 @@ const fetchDropdowns = async () => {
     try {
         const token = localStorage.getItem('token')
         const [prodRes, matRes] = await Promise.all([
-            axios.get('http://localhost:5000/api/products', { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get('http://localhost:5000/api/materials', { headers: { Authorization: `Bearer ${token}` } })
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/materials`, { headers: { Authorization: `Bearer ${token}` } })
         ])
 
         if (prodRes.data.status) {
@@ -77,7 +77,7 @@ const handleSave = async () => {
             notes: form.value.notes
         }
 
-        const res = await axios.post('http://localhost:5000/api/production', payload, {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/production`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         })
 

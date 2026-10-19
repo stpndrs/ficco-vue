@@ -24,7 +24,7 @@ const fetchMaterials = async () => {
     isLoading.value = true
     try {
         const token = localStorage.getItem('token')
-        let url = 'http://localhost:5000/api/materials?limit=50'
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/materials?limit=50`
         if (search.value) url += `&search=${search.value}`
         if (selectedType.value !== 'All Types') url += `&type=${selectedType.value}`
 
@@ -48,7 +48,7 @@ const toggleStatus = async (item) => {
         const token = localStorage.getItem('token')
         const newStatus = !item.isActive
         const res = await axios.patch(
-            `http://localhost:5000/api/materials/${item.id}/status`,
+            `${import.meta.env.VITE_APP_API_URL}/api/materials/${item.id}/status`,
             { isActive: newStatus },
             { headers: { Authorization: `Bearer ${token}` } }
         )
@@ -157,7 +157,7 @@ onMounted(fetchMaterials)
 
                         <!-- Description & Notes -->
                         <td class="py-3.5 px-4 text-slate-500 font-medium line-clamp-1 max-w-xs">
-                            {{ mat.description || mat.notes || 'Grade 1 washed green beans for specialty espresso roast.' }}
+                            {{ mat.description || mat.notes || 'Grade 1 washed green beans for specialty espresso                            roast.' }}
                         </td>
 
                         <!-- Status Toggle (FR-0210) -->

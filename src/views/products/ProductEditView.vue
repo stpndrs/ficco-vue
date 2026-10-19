@@ -25,8 +25,8 @@ const fetchProductAndDropdowns = async () => {
     try {
         const token = localStorage.getItem('token')
         const [catRes, prodRes] = await Promise.all([
-            axios.get('http://localhost:5000/api/products/categories', { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get(`http://localhost:5000/api/products/${route.params.id}`, { headers: { Authorization: `Bearer ${token}` } })
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products/categories`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products/${route.params.id}`, { headers: { Authorization: `Bearer ${token}` } })
         ])
 
         if (catRes.data.status) categories.value = catRes.data.data
@@ -63,7 +63,7 @@ const handleSaveChanges = async () => {
             notes: form.value.notes || null
         }
 
-        const res = await axios.put(`http://localhost:5000/api/products/${form.value.id}`, payload, {
+        const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/products/${form.value.id}`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         })
 

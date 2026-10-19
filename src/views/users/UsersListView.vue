@@ -18,7 +18,7 @@ const fetchUsers = async () => {
     isLoading.value = true
     try {
         const token = localStorage.getItem('token')
-        let url = `http://localhost:5000/api/users?limit=${limit.value}`
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/users?limit=${limit.value}`
         if (search.value) url += `&search=${search.value}`
 
         const res = await axios.get(url, {
@@ -40,7 +40,7 @@ const toggleUserStatus = async (user) => {
         const token = localStorage.getItem('token')
         const newStatus = !user.isActive
         const res = await axios.patch(
-            `http://localhost:5000/api/users/${user.id}/status`,
+            `${import.meta.env.VITE_APP_API_URL}/api/users/${user.id}/status`,
             { isActive: newStatus },
             { headers: { Authorization: `Bearer ${token}` } }
         )

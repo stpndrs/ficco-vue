@@ -23,7 +23,7 @@ const form = ref({
 const fetchBatch = async () => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.get(`http://localhost:5000/api/production/${route.params.id}`, {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/production/${route.params.id}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) {
@@ -59,7 +59,7 @@ const handleSaveChanges = async () => {
             notes: form.value.notes
         }
 
-        const res = await axios.put(`http://localhost:5000/api/production/${form.value.id}`, payload, {
+        const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/production/${form.value.id}`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         })
 

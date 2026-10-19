@@ -23,7 +23,7 @@ const handleSave = async () => {
     isSubmitting.value = true
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.post('http://localhost:5000/api/users', form.value, {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/users`, form.value, {
             headers: { Authorization: `Bearer ${token}` }
         })
 

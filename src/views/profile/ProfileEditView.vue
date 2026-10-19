@@ -22,7 +22,7 @@ const fetchProfile = async () => {
     try {
         const token = localStorage.getItem('token')
         const userId = localStorage.getItem('userId') || '1'
-        const res = await axios.get(`http://localhost:5000/api/user/profile/${userId}`, {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/user/profile/${userId}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
 
@@ -72,7 +72,7 @@ const handleSaveChanges = async () => {
             formData.append('profileImageUrlText', form.value.profileImageUrlText)
         }
 
-        const res = await axios.post('http://localhost:5000/api/user/profile/edit', formData, {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/user/profile/edit`, formData, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'multipart/form-data'

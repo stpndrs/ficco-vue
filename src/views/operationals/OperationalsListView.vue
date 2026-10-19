@@ -23,7 +23,7 @@ const fetchExpenses = async () => {
     isLoading.value = true
     try {
         const token = localStorage.getItem('token')
-        let url = 'http://localhost:5000/api/operationals?limit=50'
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/operationals?limit=50`
         if (search.value) url += `&search=${search.value}`
         if (dateFilter.value) url += `&date=${dateFilter.value}`
 
@@ -46,7 +46,7 @@ const deleteExpense = async (id) => {
     if (!confirm('Apakah Anda yakin ingin menghapus catatan pengeluaran ini?')) return
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.delete(`http://localhost:5000/api/operationals/${id}`, {
+        const res = await axios.delete(`${import.meta.env.VITE_APP_API_URL}/api/operationals/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) {

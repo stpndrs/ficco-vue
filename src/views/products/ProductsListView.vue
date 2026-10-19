@@ -29,7 +29,7 @@ const showToast = (message, type = 'success') => {
 const fetchCategories = async () => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.get('http://localhost:5000/api/products/categories', {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products/categories`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) categories.value = res.data.data
@@ -42,7 +42,7 @@ const fetchProducts = async () => {
     isLoading.value = true
     try {
         const token = localStorage.getItem('token')
-        let url = `http://localhost:5000/api/products?page=${currentPage.value}&limit=10`
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/products?page=${currentPage.value}&limit=10`
         if (search.value) url += `&search=${search.value}`
         if (selectedCategory.value !== 'All') url += `&categoryId=${selectedCategory.value}`
 
@@ -69,7 +69,7 @@ const toggleStatus = async (product) => {
         const token = localStorage.getItem('token')
         const newStatus = !product.isActive
         const res = await axios.patch(
-            `http://localhost:5000/api/products/${product.id}/status`,
+            `${import.meta.env.VITE_APP_API_URL}/api/products/${product.id}/status`,
             { isActive: newStatus },
             { headers: { Authorization: `Bearer ${token}` } }
         )
@@ -95,11 +95,11 @@ const handleSaveCategory = async () => {
 
         let res
         if (isEditCategory.value) {
-            res = await axios.put(`http://localhost:5000/api/products/categories/${categoryForm.value.id}`, payload, {
+            res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/products/categories/${categoryForm.value.id}`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             })
         } else {
-            res = await axios.post('http://localhost:5000/api/products/categories', payload, {
+            res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/products/categories`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             })
         }
@@ -119,7 +119,7 @@ const deleteCategory = async (id) => {
     if (!confirm('Hapus kategori ini?')) return
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.delete(`http://localhost:5000/api/products/categories/${id}`, {
+        const res = await axios.delete(`${import.meta.env.VITE_APP_API_URL}/api/products/categories/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) {

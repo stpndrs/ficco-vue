@@ -18,7 +18,7 @@ const form = ref({
 const fetchMaterial = async () => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.get(`http://localhost:5000/api/materials/${route.params.id}`, {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/materials/${route.params.id}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) {
@@ -50,7 +50,7 @@ const handleSaveChanges = async () => {
             description: form.value.description
         }
 
-        const res = await axios.put(`http://localhost:5000/api/materials/${form.value.id}`, payload, {
+        const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/materials/${form.value.id}`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         })
 

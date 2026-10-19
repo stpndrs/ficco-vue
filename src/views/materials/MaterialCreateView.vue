@@ -26,7 +26,7 @@ const handleSave = async () => {
             description: form.value.description
         }
 
-        const res = await axios.post('http://localhost:5000/api/materials', payload, {
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/materials`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         })
 

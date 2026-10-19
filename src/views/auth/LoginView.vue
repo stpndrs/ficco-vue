@@ -21,7 +21,7 @@ const handleLogin = async () => {
     errorMessage.value = ''
 
     try {
-        const res = await axios.post('http://localhost:5000/api/auth/login', form.value)
+        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/auth/login`, form.value)
         if (res.data.status) {
             localStorage.setItem('token', res.data.data.token)
             router.push('/dashboard')

@@ -20,7 +20,7 @@ const form = ref({
 const fetchUser = async () => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.get(`http://localhost:5000/api/users/${route.params.id}`, {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/users/${route.params.id}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data.status) {
@@ -55,7 +55,7 @@ const handleSaveChanges = async () => {
         }
         if (form.value.password) payload.password = form.value.password
 
-        const res = await axios.put(`http://localhost:5000/api/users/${form.value.id}`, payload, {
+        const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/users/${form.value.id}`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         })
 
