@@ -10,7 +10,11 @@ const props = defineProps({
     },
     placeholder: String,
     required: Boolean,
-    error: String
+    error: String,
+    disabled: {
+        type: Boolean,
+        default: false
+    }
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -35,7 +39,7 @@ const togglePassword = () => {
                     error
                         ? 'border-red-500 focus:ring-2 focus:ring-red-200'
                         : 'border-gray-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'
-                ]" />
+                ]" :disabled="disabled" />
 
             <!-- Password Eye Toggle Icon -->
             <button v-if="type === 'password'" type="button" @click="togglePassword"

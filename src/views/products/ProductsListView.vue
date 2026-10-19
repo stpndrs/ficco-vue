@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { getImageUrl } from '@/helpers/getImageUrl'
+import { formatCurrency } from '@/helpers/formatCurrency'
 
 const router = useRouter()
 
@@ -135,8 +137,6 @@ onMounted(() => {
     fetchCategories()
     fetchProducts()
 })
-
-const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
 </script>
 
 <template>
@@ -212,7 +212,7 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
                         <td class="py-3 px-4">
                             <div
                                 class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
-                                <img v-if="p.images" :src="p.images" class="w-full h-full object-cover" />
+                                <img v-if="p.images" :src="getImageUrl(p.images)" class="w-full h-full object-cover" />
                                 <span v-else>PRD</span>
                             </div>
                         </td>
