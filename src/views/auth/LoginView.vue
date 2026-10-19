@@ -9,16 +9,18 @@ import BaseButton from '@/components/common/BaseButton.vue'
 const router = useRouter()
 
 const form = ref({
-    username: '',
+    email: '',
     password: ''
 })
 
 const loading = ref(false)
 const errorMessage = ref('')
+const validationMessage = ref([])
 
 const handleLogin = async () => {
     loading.value = true
     errorMessage.value = ''
+    validationMessage.value = []
 
     try {
         const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/auth/login`, form.value)
@@ -27,7 +29,8 @@ const handleLogin = async () => {
             router.push('/dashboard')
         }
     } catch (err) {
-        errorMessage.value = err.response?.data?.message || 'Login gagal. Periksa kembali akun Anda.'
+        errorMessage.value = err.response?.data?.message || 'Login failed. Please check your account.'
+        validationMessage.value = err.response?.data?.errors
     } finally {
         loading.value = false
     }
@@ -56,8 +59,8 @@ const handleLogin = async () => {
                 </div>
 
                 <form @submit.prevent="handleLogin" class="space-y-4">
-                    <BaseInput v-model="form.username" label="Account Email / Username"
-                        placeholder="jordan@artisancoffee.com" required />
+                    <BaseInput v-model="form.email" label="Account Email" placeholder="jordan@artisancoffee.com"
+                        type="email" :error="validationMessage?.email?.[0] || null" required />
 
                     <div>
                         <div class="flex justify-between items-center mb-1">
@@ -68,7 +71,7 @@ const handleLogin = async () => {
                             </router-link>
                         </div>
                         <BaseInput v-model="form.password" type="password" placeholder="Enter your account password"
-                            required />
+                            :error="validationMessage?.password?.[0] || null" required />
                     </div>
 
                     <BaseButton type="submit" :loading="loading" class="mt-6">

@@ -8,14 +8,16 @@ const email = ref('')
 const loading = ref(false)
 const message = ref('')
 const isError = ref(false)
+const validationMessage = ref([])
 
 const handleForgotPassword = async () => {
     loading.value = true
     message.value = ''
+    validationMessage.value = []
 
     try {
         const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/auth/forgot-password`, {
-            username: email.value
+            email: email.value
         })
 
         if (res.data.status) {
@@ -25,6 +27,7 @@ const handleForgotPassword = async () => {
     } catch (err) {
         isError.value = true
         message.value = err.response?.data?.message || 'Gagal mengirim email reset password.'
+        validationMessage.value = err.response?.data?.errors
     } finally {
         loading.value = false
     }
@@ -56,7 +59,8 @@ const handleForgotPassword = async () => {
 
             <form @submit.prevent="handleForgotPassword" class="space-y-4 text-left">
                 <BaseInput v-model="email" type="email" label="Corporate Email Address"
-                    placeholder="jordan@artisancoffee.com" required />
+                    placeholder="jordan@artisancoffee.com" :error="validationMessage?.email?.[0] || null"
+                    required />
 
                 <BaseButton type="submit" :loading="loading" class="mt-4">
                     Send Recovery Email

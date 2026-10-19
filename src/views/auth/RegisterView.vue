@@ -10,19 +10,23 @@ const router = useRouter()
 
 const form = ref({
     username: '',
+    email: '',
+    password: '',
     companyName: '',
-    ownerPhone: '',
     companyAddress: '',
+    ownerName: '',
+    ownerPhone: '',
     initialCapital: 0,
-    password: ''
 })
 
 const loading = ref(false)
 const errorMessage = ref('')
+const validationMessage = ref([])
 
 const handleRegister = async () => {
     loading.value = true
     errorMessage.value = ''
+    validationMessage.value = []
 
     try {
         const payload = {
@@ -35,6 +39,7 @@ const handleRegister = async () => {
         }
     } catch (err) {
         errorMessage.value = err.response?.data?.message || 'Registrasi gagal. Periksa data Anda.'
+        validationMessage.value = err.response?.data?.errors
     } finally {
         loading.value = false
     }
@@ -60,26 +65,41 @@ const handleRegister = async () => {
                 </div>
 
                 <form @submit.prevent="handleRegister" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <BaseInput v-model="form.companyName" label="Registered Business Name"
-                        placeholder="Artisan Coffee Roasters & Cafe" required />
-
-                    <BaseInput v-model="form.ownerPhone" label="Owner Contact Phone" placeholder="+1 (206) 555-0192"
-                        required />
-
-                    <BaseInput v-model="form.username" label="Corporate Email / Username"
-                        placeholder="jordan@artisancoffee.com" required />
-
-                    <BaseInput v-model="form.initialCapital" type="number" label="Initial Business Capital ($)"
-                        placeholder="50,000" required />
-
                     <div class="md:col-span-2">
-                        <BaseInput v-model="form.companyAddress" label="Business Headquarters Address"
-                            placeholder="104 Pike Street, Suite 400, Seattle, WA" required />
+                        <BaseInput v-model="form.companyName" label="Registered Business Name"
+                            placeholder="Artisan Coffee Roasters & Cafe"
+                            :error="validationMessage?.companyName?.[0] || null" required />
                     </div>
 
                     <div class="md:col-span-2">
+                        <BaseInput v-model="form.companyAddress" label="Business Headquarters Address"
+                            placeholder="104 Pike Street, Suite 400, Seattle, WA"
+                            :error="validationMessage?.companyAddress?.[0] || null" />
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <BaseInput v-model="form.initialCapital" type="number" label="Initial Business Capital ($)"
+                            placeholder="50,000" :error="validationMessage?.initialCapital?.[0] || null" required />
+                    </div>
+
+                    <BaseInput v-model="form.ownerName" label="Owner Name" placeholder="+1 (206) 555-0192"
+                        :error="validationMessage?.ownerName?.[0] || null" required />
+
+                    <BaseInput v-model="form.ownerPhone" label="Owner Contact Phone" placeholder="+1 (206) 555-0192"
+                        :error="validationMessage?.ownerPhone?.[0] || null" />
+
+                    <BaseInput v-model="form.email" label="Corporate Email" placeholder="jordan@artisancoffee.com"
+                        :error="validationMessage?.email?.[0] || null" required />
+
+                    <BaseInput v-model="form.username" label="Master Account Username"
+                        placeholder="jordan@artisancoffee.com" :error="validationMessage?.username?.[0] || null"
+                        required />
+
+
+                    <div class="md:col-span-2">
                         <BaseInput v-model="form.password" type="password" label="Master Account Password"
-                            placeholder="Create strong password (min. 6 chars)" required />
+                            placeholder="Create strong password (min. 6 chars)"
+                            :error="validationMessage?.password?.[0] || null" required />
                     </div>
 
                     <div class="md:col-span-2 mt-4">

@@ -12,10 +12,12 @@ const newPassword = ref('')
 const loading = ref(false)
 const message = ref('')
 const isError = ref(false)
+const validationMessage = ref([])
 
 const handleReset = async () => {
     loading.value = true
     message.value = ''
+    validationMessage.value = []
 
     try {
         const token = route.query.token || ''
@@ -32,6 +34,7 @@ const handleReset = async () => {
     } catch (err) {
         isError.value = true
         message.value = err.response?.data?.message || 'Gagal mereset password.'
+        validationMessage.value = err.response?.data?.errors
     } finally {
         loading.value = false
     }
@@ -63,7 +66,7 @@ const handleReset = async () => {
 
             <form @submit.prevent="handleReset" class="space-y-4 text-left">
                 <BaseInput v-model="newPassword" type="password" label="New Password" placeholder="Your New Password"
-                    required />
+                    :error="validationMessage?.newPassword?.[0] || null" required />
 
                 <BaseButton type="submit" :loading="loading" class="mt-4">
                     Reset My Password
