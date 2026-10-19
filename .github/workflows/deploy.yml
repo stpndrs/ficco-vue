@@ -1,0 +1,52 @@
+name: Deploy Vue.js Project
+
+on:
+  push:
+    branches:
+      - main # Ubah jika branch utama Anda master atau dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      # Membuat file .htaccess otomatis ke dalam folder build (dist)
+      - name: Create .htaccess File
+        run: |
+          cat << 'EOF' > dist/.htaccess
+          <IfModule mod_rewrite.c>
+            Engine On
+            RewriteEngine On
+            RewriteBase /
+            RewriteRule ^index\.html$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.html [L]
+          </IfModule>
+          EOF
+
+      # Deploy file build ke server FTP / cPanel
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }} # Contoh: /public_html/ atau /public_html/subfolder/
+          state-name: .ftp-deploy-sync-state.json
