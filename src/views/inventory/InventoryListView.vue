@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { getImageUrl } from '@/helpers/getImageUrl'
 
 // --- STATE DATA ---
 const products = ref([])
@@ -172,7 +173,7 @@ const openDetails = (product) => {
                         <td class="py-3 px-4">
                             <div
                                 class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
-                                <img v-if="item.images" :src="item.images" class="w-full h-full object-cover" />
+                                <img v-if="item.images" :src="getImageUrl(item.images)" class="w-full h-full object-cover" />
                                 <span v-else>PRD</span>
                             </div>
                         </td>
@@ -267,7 +268,7 @@ const openDetails = (product) => {
                 <div class="p-4 bg-slate-50/80 rounded-2xl border border-slate-100 flex items-center gap-3">
                     <div
                         class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
-                        <img v-if="selectedItem.images" :src="selectedItem.images" class="w-full h-full object-cover" />
+                        <img v-if="selectedItem.images" :src="getImageUrl(selectedItem.images)" class="w-full h-full object-cover" />
                         <span v-else>PRD</span>
                     </div>
 
