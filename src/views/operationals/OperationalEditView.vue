@@ -3,18 +3,27 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
+import BaseInput from '@/components/common/BaseInput.vue'
+import BaseButton from '@/components/common/BaseButton.vue'
+
 const route = useRoute()
 const router = useRouter()
 
 const isSubmitting = ref(false)
+const errorMessage = ref('')
+const validationErrors = ref({})
+
+const existingImage = ref('')
+const imagePreview = ref('')
+
 const form = ref({
     id: '',
     code: 'EXP-101',
-    title: 'Store Commercial Power & HVAC Utilities',
-    amount: 320,
-    transactionDate: '2026-10-05',
-    paymentProof: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c',
-    notes: 'September to October billing cycle for store & roastery.'
+    title: '',
+    amount: '',
+    date: '2026-10-05',
+    paymentProof: null,
+    notes: ''
 })
 
 const fetchExpense = async () => {
@@ -30,43 +39,70 @@ const fetchExpense = async () => {
                 code: e.code || `EXP-10${e.id}`,
                 title: e.title,
                 amount: e.amount,
-                transactionDate: e.transactionDate ? new Date(e.transactionDate).toISOString().split('T')[0] : '2026-10-05',
-                paymentProof: e.paymentProof || e.receiptUrl || '',
+                date: e.date ? new Date(e.date).toISOString().split('T')[0] : (e.transactionDate ? new Date(e.transactionDate).toISOString().split('T')[0] : '2026-10-05'),
+                paymentProof: null,
                 notes: e.notes || e.description || ''
+            }
+
+            if (e.paymentProof) {
+                existingImage.value = e.paymentProof.startsWith('http')
+                    ? e.paymentProof
+                    : `${import.meta.env.VITE_APP_API_URL}${e.paymentProof}`
             }
         }
     } catch (err) {
-        alert('Gagal mengambil data pengeluaran operasional')
+        errorMessage.value = err.response?.data?.message || 'Gagal mengambil data pengeluaran operasional'
     }
 }
 
 onMounted(fetchExpense)
 
+const handleFileChange = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+        form.value.paymentProof = file
+        imagePreview.value = URL.createObjectURL(file)
+    }
+}
+
 const handleSaveChanges = async () => {
+    errorMessage.value = ''
+    validationErrors.value = {}
+
     if (!form.value.title || !form.value.amount) {
-        return alert('Judul pengeluaran dan jumlah (amount) wajib diisi!')
+        errorMessage.value = 'Judul pengeluaran dan jumlah (amount) wajib diisi!'
+        return
+    }
+
+    if (Number(form.value.amount) <= 0) {
+        errorMessage.value = 'Jumlah pengeluaran (amount) harus lebih besar dari 0!'
+        return
     }
 
     isSubmitting.value = true
     try {
         const token = localStorage.getItem('token')
-        const payload = {
-            title: form.value.title,
-            amount: Number(form.value.amount),
-            transactionDate: form.value.transactionDate,
-            paymentProof: form.value.paymentProof || null,
-            notes: form.value.notes || null
-        }
+        const formData = new FormData()
 
-        const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/operationals/${form.value.id}`, payload, {
-            headers: { Authorization: `Bearer ${token}` }
+        formData.append('title', form.value.title)
+        formData.append('amount', Number(form.value.amount))
+        formData.append('date', form.value.date)
+        if (form.value.notes) formData.append('notes', form.value.notes)
+        if (form.value.paymentProof) formData.append('paymentProof', form.value.paymentProof)
+
+        const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/operationals/${form.value.id}`, formData, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+            }
         })
 
         if (res.data.status) {
             router.push('/operationals')
         }
     } catch (err) {
-        alert(err.response?.data?.message || 'Gagal memperbarui pengeluaran operasional')
+        errorMessage.value = err.response?.data?.message || 'Gagal memperbarui pengeluaran operasional'
+        validationErrors.value = err.response?.data?.errors || {}
     } finally {
         isSubmitting.value = false
     }
@@ -96,73 +132,63 @@ const handleSaveChanges = async () => {
                 </router-link>
             </div>
 
+            <!-- Alert Error Banner -->
+            <div v-if="errorMessage"
+                class="p-3.5 rounded-xl bg-red-50 text-red-600 text-xs font-medium border border-red-200 flex items-center justify-between">
+                <span>{{ errorMessage }}</span>
+                <button @click="errorMessage = ''"
+                    class="text-red-400 hover:text-red-600 font-bold ml-2">&times;</button>
+            </div>
+
             <!-- Form Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Expense Code (Auto-generated /
-                        ReadOnly)</label>
-                    <input type="text" :value="form.code" disabled
-                        class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700" />
-                </div>
+            <form @submit.prevent="handleSaveChanges" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <BaseInput v-model="form.code" label="Expense Code (ReadOnly)" disabled />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Expense Amount ($) *</label>
-                    <input v-model="form.amount" type="number" step="0.01"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
-                </div>
+                    <BaseInput v-model="form.amount" type="number" step="0.01" label="Expense Amount ($)"
+                        :error="validationErrors.amount?.[0]" required />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Expense Title *</label>
-                    <input v-model="form.title" type="text"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
-                </div>
+                    <BaseInput v-model="form.title" label="Expense Title" :error="validationErrors.title?.[0]"
+                        required />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Payment Receipt / Proof URL
-                        (Optional)</label>
-                    <div class="space-y-1.5">
-                        <div class="flex items-center gap-2">
-                            <input v-model="form.paymentProof" type="text"
-                                class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
-                            <button type="button"
-                                @click="form.paymentProof = 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c'"
-                                class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs rounded-xl shrink-0">
-                                Sample
-                            </button>
+                    <!-- File Proof Input & Preview -->
+                    <div class="space-y-2">
+                        <BaseInput type="file" label="Payment Receipt / Proof (Optional)" accept="image/*"
+                            @change="handleFileChange" :error="validationErrors.paymentProof?.[0]" />
+
+                        <div v-if="imagePreview || existingImage" class="mt-2 flex items-center gap-3">
+                            <img :src="imagePreview || existingImage" alt="Receipt Preview"
+                                class="w-16 h-16 object-cover rounded-xl border border-slate-200 shadow-sm" />
+                            <span class="text-[10px] text-slate-400">
+                                {{ imagePreview ? 'Pratinjau berkas baru' : 'Berkas nota saat ini' }}
+                            </span>
                         </div>
-                        <div v-if="form.paymentProof"
-                            class="flex justify-between items-center px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg text-[10px]">
-                            <span class="text-slate-500 truncate max-w-[200px]">{{ form.paymentProof }}</span>
-                            <button type="button" @click="form.paymentProof = ''"
-                                class="text-red-500 font-bold hover:underline">Remove</button>
-                        </div>
+                    </div>
+
+                    <BaseInput v-model="form.date" type="date" label="Transaction Date"
+                        :error="validationErrors.date?.[0]" required />
+
+                    <div class="space-y-1">
+                        <label class="block text-xs font-semibold text-gray-600">Description & Memo</label>
+                        <textarea v-model="form.notes" rows="3"
+                            :class="['w-full px-4 py-2.5 text-sm rounded-xl border bg-gray-50/50 text-gray-900 transition duration-200 outline-none focus:bg-white', validationErrors.notes ? 'border-red-500 focus:ring-2 focus:ring-red-200' : 'border-gray-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100']"></textarea>
+                        <span v-if="validationErrors.notes?.[0]" class="text-xs text-red-500 font-medium">
+                            {{ validationErrors.notes[0] }}
+                        </span>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Transaction Date *</label>
-                    <input v-model="form.transactionDate" type="date"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
+                <!-- Action Buttons -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <router-link to="/operationals"
+                        class="px-5 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs rounded-xl flex items-center">
+                        Cancel
+                    </router-link>
+                    <BaseButton type="submit" :loading="isSubmitting" class="!w-auto px-6">
+                        ✓ Save Changes
+                    </BaseButton>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Description & Memo</label>
-                    <textarea v-model="form.notes" rows="3"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600"></textarea>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <router-link to="/operationals"
-                    class="px-5 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs rounded-xl">
-                    Cancel
-                </router-link>
-                <button @click="handleSaveChanges" :disabled="isSubmitting"
-                    class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-200 transition">
-                    ✓ Save Changes
-                </button>
-            </div>
+            </form>
         </div>
     </div>
 </template>
