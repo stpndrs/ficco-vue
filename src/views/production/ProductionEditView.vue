@@ -3,60 +3,159 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
+import BaseInput from '@/components/common/BaseInput.vue'
+import BaseSelect from '@/components/common/BaseSelect.vue'
+import BaseButton from '@/components/common/BaseButton.vue'
+
 const route = useRoute()
 const router = useRouter()
 
+const materials = ref([])
+const units = ref([])
 const isSubmitting = ref(false)
+const errorMessage = ref('')
+const validationErrors = ref({})
+
 const form = ref({
     id: '',
     code: 'BATCH-2026-01',
-    productionDate: '2026-10-10',
+    date: '2026-10-10',
     productName: 'Signature Vanilla Latte',
-    outputQty: 40,
-    materialName: 'Ethiopian Yirgacheffe Raw Beans',
-    materialQtyConsumed: 4,
-    unit: 'cup',
-    totalMaterialCost: 60.00,
-    notes: 'Morning peak shift preparation batch.'
+    qtyResult: 40,
+    unitId: null,
+    lines: [],
+    notes: ''
 })
 
-const fetchBatch = async () => {
+const fetchBatchAndDropdowns = async () => {
     try {
         const token = localStorage.getItem('token')
-        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/production/${route.params.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        if (res.data.status) {
-            const b = res.data.data
+        const [batchRes, matRes, unitRes] = await Promise.all([
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/production/${route.params.id}`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/materials`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/units`, { headers: { Authorization: `Bearer ${token}` } })
+        ])
+
+        if (matRes.data.status) {
+            materials.value = matRes.data.data
+        }
+
+        if (unitRes.data.status) {
+            units.value = unitRes.data.data
+        }
+
+        if (batchRes.data.status) {
+            const b = batchRes.data.data
+            let linesList = []
+
+            if (b.lines && Array.isArray(b.lines) && b.lines.length > 0) {
+                linesList = b.lines.map(l => ({
+                    materialId: l.materialId || l.material?.id || '',
+                    qty: l.qty || 1,
+                    unitId: l.unitId || l.material?.unitId || null,
+                    description: l.description || ''
+                }))
+            } else {
+                linesList = [
+                    {
+                        materialId: b.materialId || (materials.value.length ? materials.value[0].id : ''),
+                        qty: b.materialQtyConsumed || b.qty || 1,
+                        unitId: b.unitId || null,
+                        description: b.materialDescription || ''
+                    }
+                ]
+            }
+
             form.value = {
                 id: b.id,
                 code: b.code || `BATCH-2026-${b.id.substring(0, 2)}`,
-                productionDate: b.productionDate ? new Date(b.productionDate).toISOString().split('T')[0] : '2026-10-10',
+                date: b.date ? new Date(b.date).toISOString().split('T')[0] : '2026-10-10',
                 productName: b.product?.name || b.productName || 'Signature Vanilla Latte',
-                outputQty: b.yieldQty || b.outputQty || 40,
-                materialName: b.material?.name || b.materialName || 'Ethiopian Yirgacheffe Raw Beans',
-                materialQtyConsumed: b.materialQtyConsumed || 4,
-                unit: b.unit || 'cup',
-                totalMaterialCost: b.materialCost || 60.00,
-                notes: b.notes || 'Morning peak shift preparation batch.'
+                qtyResult: b.qtyResult || b.yieldQty || 40,
+                unitId: b.unitId || null,
+                lines: linesList,
+                notes: b.notes || ''
             }
         }
     } catch (err) {
-        alert('Gagal mengambil data batch produksi')
+        errorMessage.value = err.response?.data?.message || 'Gagal mengambil data batch produksi'
     }
 }
 
-onMounted(fetchBatch)
+onMounted(fetchBatchAndDropdowns)
+
+const getMaterialDetail = (materialId) => {
+    return materials.value.find(m => m.id === materialId) || null
+}
+
+const onMaterialChange = (line) => {
+    const mat = getMaterialDetail(line.materialId)
+    if (mat && mat.unitId) {
+        line.unitId = mat.unitId
+    }
+}
+
+const addMaterialLine = () => {
+    const defaultMat = materials.value.length ? materials.value[0] : null
+    form.value.lines.push({
+        materialId: defaultMat ? defaultMat.id : '',
+        qty: 1,
+        unitId: defaultMat ? defaultMat.unitId : null,
+        description: ''
+    })
+}
+
+const removeMaterialLine = (index) => {
+    if (form.value.lines.length > 1) {
+        form.value.lines.splice(index, 1)
+    }
+}
 
 const handleSaveChanges = async () => {
+    errorMessage.value = ''
+    validationErrors.value = {}
+
+    if (Number(form.value.qtyResult) <= 0) {
+        errorMessage.value = 'Hasil produksi (qtyResult) harus bernilai positif!'
+        return
+    }
+
+    for (let i = 0; i < form.value.lines.length; i++) {
+        const line = form.value.lines[i]
+        const mat = getMaterialDetail(line.materialId)
+        const qtyNum = Number(line.qty)
+
+        if (!line.materialId) {
+            errorMessage.value = `Bahan baku pada baris #${i + 1} belum dipilih!`
+            return
+        }
+
+        if (qtyNum <= 0) {
+            errorMessage.value = `Jumlah penggunaan pada baris #${i + 1} harus bernilai positif!`
+            return
+        }
+
+        if (mat && qtyNum > mat.stock) {
+            errorMessage.value = `Jumlah bahan baku "${mat.name}" (${qtyNum}) melebihi stok yang tersedia (${mat.stock})!`
+            return
+        }
+    }
+
     isSubmitting.value = true
+
     try {
         const token = localStorage.getItem('token')
         const payload = {
-            yieldQty: Number(form.value.outputQty),
-            materialQtyConsumed: Number(form.value.materialQtyConsumed),
-            materialCost: Number(form.value.totalMaterialCost),
-            notes: form.value.notes
+            date: form.value.date,
+            qtyResult: Number(form.value.qtyResult),
+            unitId: form.value.unitId || null,
+            notes: form.value.notes || undefined,
+            lines: form.value.lines.map(l => ({
+                materialId: l.materialId,
+                qty: Number(l.qty),
+                unitId: l.unitId || null,
+                description: l.description || undefined
+            }))
         }
 
         const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/production/${form.value.id}`, payload, {
@@ -67,7 +166,8 @@ const handleSaveChanges = async () => {
             router.push('/production')
         }
     } catch (err) {
-        alert(err.response?.data?.message || 'Gagal memperbarui batch produksi')
+        errorMessage.value = err.response?.data?.message || 'Gagal memperbarui batch produksi'
+        validationErrors.value = err.response?.data?.errors || {}
     } finally {
         isSubmitting.value = false
     }
@@ -75,8 +175,9 @@ const handleSaveChanges = async () => {
 </script>
 
 <template>
-    <div class="max-w-2xl mx-auto text-left">
+    <div class="max-w-4xl mx-auto text-left">
         <div class="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
+            <!-- Header -->
             <div class="flex justify-between items-center pb-4 border-b border-slate-100">
                 <div>
                     <h2 class="text-lg font-bold text-slate-900">Edit Production Batch: {{ form.code }}</h2>
@@ -90,82 +191,112 @@ const handleSaveChanges = async () => {
                 </router-link>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Batch Code (ReadOnly)</label>
-                    <input type="text" :value="form.code" disabled
-                        class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700" />
-                </div>
+            <!-- Alert Error Banner -->
+            <div v-if="errorMessage"
+                class="p-3.5 rounded-xl bg-red-50 text-red-600 text-xs font-medium border border-red-200 flex items-center justify-between">
+                <span>{{ errorMessage }}</span>
+                <button @click="errorMessage = ''"
+                    class="text-red-400 hover:text-red-600 font-bold ml-2">&times;</button>
+            </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Production Date</label>
-                    <input type="date" :value="form.productionDate" disabled
-                        class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700" />
-                </div>
+            <!-- Form Body -->
+            <form @submit.prevent="handleSaveChanges" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <BaseInput v-model="form.code" label="Batch Code (ReadOnly)" disabled />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Target Finished Product</label>
-                    <input type="text" :value="form.productName" disabled
-                        class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700" />
-                </div>
+                    <BaseInput v-model="form.date" type="date" label="Production Date"
+                        :error="validationErrors.date?.[0]" />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Output Yield Qty *</label>
-                    <input v-model="form.outputQty" type="number"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
-                </div>
+                    <BaseInput v-model="form.productName" label="Target Finished Product" disabled />
 
-                <!-- Material Specifications Box -->
-                <div class="sm:col-span-2 p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-3">
-                    <p class="text-xs font-bold text-slate-800">Material Specifications</p>
-
-                    <div>
-                        <label class="block text-[10px] font-semibold text-slate-500 mb-1">Material Name
-                            (Auto-filled)</label>
-                        <input type="text" :value="form.materialName" disabled
-                            class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700" />
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-2">
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-500 mb-1">Material Qty Consumed
-                                *</label>
-                            <input v-model="form.materialQtyConsumed" type="number"
-                                class="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-center outline-none focus:border-indigo-600" />
-                        </div>
-
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-500 mb-1">Unit</label>
-                            <input type="text" :value="form.unit" disabled
-                                class="w-full px-2.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-center font-bold text-slate-700" />
-                        </div>
-
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-500 mb-1">Total Material Cost ($)
-                                *</label>
-                            <input v-model="form.totalMaterialCost" type="number" step="0.01"
-                                class="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-center outline-none focus:border-indigo-600" />
-                        </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <BaseInput v-model="form.qtyResult" type="number" min="1" label="Quantity Result *"
+                            :error="validationErrors.qtyResult?.[0]" required />
+                        <BaseSelect v-model="form.unitId" label="Result Unit" :options="units" valueKey="id"
+                            labelKey="name" placeholder="Pilih unit" />
                     </div>
                 </div>
 
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Production Notes</label>
+                <!-- Material Lines Section -->
+                <div class="p-5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-800">Consumed Material Lines</h3>
+                            <p class="text-[10px] text-slate-400">Sesuaikan daftar bahan baku yang digunakan</p>
+                        </div>
+                        <button type="button" @click="addMaterialLine"
+                            class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition">
+                            + Add Material
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div v-for="(line, idx) in form.lines" :key="idx"
+                            class="p-3.5 bg-white border border-slate-200/80 rounded-xl space-y-3 relative">
+                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
+                                <div class="sm:col-span-4">
+                                    <BaseSelect v-model="line.materialId" :label="`Raw Material #${idx + 1}`"
+                                        :options="materials" valueKey="id" labelKey="name"
+                                        @change="onMaterialChange(line)" required />
+                                    <div v-if="getMaterialDetail(line.materialId)"
+                                        class="text-[10px] text-slate-400 mt-1 space-y-0.5">
+                                        <p>Kode: <span class="font-semibold text-slate-700">{{
+                                                getMaterialDetail(line.materialId).code }}</span> | Tipe: <span
+                                                class="font-semibold text-slate-700">{{
+                                                getMaterialDetail(line.materialId).type }}</span></p>
+                                        <p>Stok Tersedia: <span class="font-bold text-slate-800">{{
+                                                getMaterialDetail(line.materialId).stock }}</span></p>
+                                    </div>
+                                </div>
+
+                                <div class="sm:col-span-2">
+                                    <BaseInput v-model="line.qty" type="number" min="1" label="Quantity *"
+                                        :error="getMaterialDetail(line.materialId) && line.qty > getMaterialDetail(line.materialId).stock ? `Maks ${getMaterialDetail(line.materialId).stock}` : null"
+                                        required />
+                                </div>
+
+                                <div class="sm:col-span-2">
+                                    <BaseSelect v-model="line.unitId" label="Unit" :options="units" valueKey="id"
+                                        labelKey="name" placeholder="Unit" />
+                                </div>
+
+                                <div class="sm:col-span-3">
+                                    <BaseInput v-model="line.description" label="Note / Desc"
+                                        placeholder="Catatan bahan..." />
+                                </div>
+
+                                <div class="sm:col-span-1 flex justify-center pt-6">
+                                    <button type="button" @click="removeMaterialLine(idx)"
+                                        :disabled="form.lines.length === 1"
+                                        class="p-2 text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed font-bold">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-600">Production Notes</label>
                     <textarea v-model="form.notes" rows="3"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600"></textarea>
+                        :class="['w-full px-4 py-2.5 text-sm rounded-xl border bg-gray-50/50 text-gray-900 transition duration-200 outline-none focus:bg-white', validationErrors.notes ? 'border-red-500 focus:ring-2 focus:ring-red-200' : 'border-gray-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100']"></textarea>
+                    <span v-if="validationErrors.notes?.[0]" class="text-xs text-red-500 font-medium">
+                        {{ validationErrors.notes[0] }}
+                    </span>
                 </div>
-            </div>
 
-            <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <router-link to="/production"
-                    class="px-5 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs rounded-xl">
-                    Cancel
-                </router-link>
-                <button @click="handleSaveChanges" :disabled="isSubmitting"
-                    class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-200 transition">
-                    ✓ Save Changes
-                </button>
-            </div>
+                <!-- Footer Action Buttons -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <router-link to="/production"
+                        class="px-5 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs rounded-xl flex items-center">
+                        Cancel
+                    </router-link>
+                    <BaseButton type="submit" :loading="isSubmitting" class="!w-auto px-6">
+                        ✓ Save Changes
+                    </BaseButton>
+                </div>
+            </form>
         </div>
     </div>
 </template>

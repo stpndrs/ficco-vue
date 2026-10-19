@@ -98,8 +98,6 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
                         <th class="py-3.5 px-4">YIELD QTY</th>
                         <th class="py-3.5 px-4">UNIT</th>
                         <th class="py-3.5 px-4">RAW MATERIAL CONSUMED</th>
-                        <th class="py-3.5 px-4">INPUT QTY</th>
-                        <th class="py-3.5 px-4">MATERIAL COST</th>
                         <th class="py-3.5 px-4 text-right">ACTIONS</th>
                     </tr>
                 </thead>
@@ -128,7 +126,7 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
 
                         <!-- Yield Qty -->
                         <td class="py-3.5 px-4 font-extrabold text-emerald-600">
-                            +{{ batch.yieldQty || batch.outputQty || 40 }}
+                            +{{ batch.qtyResult }}
                         </td>
 
                         <!-- Unit -->
@@ -144,16 +142,6 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
                             <p class="text-[10px] text-slate-400 font-mono mt-0.5">
                                 {{ batch.material?.code || batch.materialCode || 'MAT-101' }}
                             </p>
-                        </td>
-
-                        <!-- Input Qty -->
-                        <td class="py-3.5 px-4 font-extrabold text-slate-900">
-                            {{ batch.materialQtyConsumed || batch.inputQty || 4 }}
-                        </td>
-
-                        <!-- Material Cost -->
-                        <td class="py-3.5 px-4 font-extrabold text-slate-900">
-                            {{ formatCurrency(batch.materialCost || batch.totalMaterialCost || 60.00) }}
                         </td>
 
                         <!-- Actions (FR-0235) -->
