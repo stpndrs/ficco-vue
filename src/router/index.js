@@ -93,11 +93,6 @@ const router = createRouter({
 					component: () => import('../views/purchasing/PurchasingCreateView.vue')
 				},
 				{
-					path: 'purchasing/edit/:id',
-					name: 'purchasing-edit',
-					component: () => import('../views/purchasing/PurchasingEditView.vue')
-				},
-				{
 					path: 'materials',
 					name: 'materials-list',
 					component: () => import('../views/materials/MaterialsListView.vue')
@@ -156,6 +151,11 @@ const router = createRouter({
 					path: 'users/edit/:id',
 					name: 'users-edit',
 					component: () => import('../views/users/UserEditView.vue')
+				},
+				{
+					path: 'reports',
+					name: 'reports-view',
+					component: () => import('../views/reports/ReportView.vue')
 				},
 				{
 					path: 'profile',
