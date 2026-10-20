@@ -97,43 +97,41 @@ onMounted(() => {
 
 <template>
     <div class="space-y-6 text-left relative text-slate-800">
-        <!-- EXECUTIVE SUMMARY CARD (FR-0325) -->
-        <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+        <!-- EXECUTIVE SUMMARY CARD -->
+        <div class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
             <div>
-                <h1 class="text-xl font-bold text-slate-900">Executive Summary</h1>
+                <h1 class="text-lg sm:text-xl font-bold text-slate-900">Executive Summary</h1>
                 <p class="text-xs text-slate-400 mt-0.5">Real-Time financial performance, AI intelligence synthesis, and
                     operational forecast for Artisan Coffee Roasters & Cafe.</p>
             </div>
 
             <!-- Financial Statistics (KPIs) Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <div class="flex justify-between items-center text-xs">
                         <span class="font-bold text-slate-400 uppercase">TOTAL REVENUE</span>
                         <span
-                            class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]">+15.8%
-                            vs Last Month</span>
+                            class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]">+15.8%</span>
                     </div>
-                    <p class="text-2xl font-extrabold text-slate-900 mt-1">$142,500.00</p>
+                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">$142,500.00</p>
                 </div>
 
                 <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <div class="flex justify-between items-center text-xs">
                         <span class="font-bold text-slate-400 uppercase">NET OPERATING PROFIT</span>
-                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-bold text-[10px]">20.2%
-                            Net Margin</span>
+                        <span
+                            class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-bold text-[10px]">20.2%</span>
                     </div>
-                    <p class="text-2xl font-extrabold text-slate-900 mt-1">$28,780.00</p>
+                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">$28,780.00</p>
                 </div>
 
-                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 sm:col-span-2 lg:col-span-1">
                     <div class="flex justify-between items-center text-xs">
                         <span class="font-bold text-slate-400 uppercase">NET CASH FLOW</span>
                         <span
-                            class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]">+8.2%
-                            Inflow Surplus</span>
+                            class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]">+8.2%</span>
                     </div>
-                    <p class="text-2xl font-extrabold text-slate-900 mt-1">$19,340.00</p>
+                    <p class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">$19,340.00</p>
                 </div>
             </div>
 
@@ -156,9 +154,9 @@ onMounted(() => {
 
         <!-- ADVANCED AI ANALYTICAL GRID -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- 1. AI FINANCE COPILOT CARD (FR-0325 - FR-0332) -->
+            <!-- 1. AI FINANCE COPILOT CARD -->
             <div
-                class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-4">
+                class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-4">
                 <div class="flex justify-between items-center pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2">
                         <div
@@ -173,46 +171,47 @@ onMounted(() => {
                         Active</span>
                 </div>
 
-                <!-- Chat Bubble List (FR-0328) -->
+                <!-- Chat Bubble List -->
                 <div class="space-y-3 h-80 overflow-y-auto pr-2 text-xs">
                     <div v-for="(msg, idx) in chatMessages" :key="idx"
                         :class="[msg.sender === 'user' ? 'text-right' : 'text-left']">
                         <div :class="[
-                            'inline-block max-w-[85%] p-3.5 rounded-2xl text-xs space-y-2',
+                            'inline-block max-w-[90%] sm:max-w-[85%] p-3.5 rounded-2xl text-xs space-y-2',
                             msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-50 border border-slate-100 text-slate-700 rounded-bl-none'
                         ]">
                             <p class="leading-relaxed">{{ msg.text }}</p>
                             <div v-if="msg.tags" class="flex flex-wrap gap-1 pt-1">
                                 <span v-for="tag in msg.tags" :key="tag"
                                     class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md text-[9px] font-bold">{{
-                                        tag }}</span>
+                                    tag }}</span>
                             </div>
                         </div>
                         <p class="text-[9px] text-slate-400 mt-1 px-1">{{ msg.time }}</p>
                     </div>
                 </div>
 
-                <!-- Input Area (FR-0329 & FR-0331) -->
+                <!-- Input Area -->
                 <div class="flex gap-2 pt-2 border-t border-slate-100">
                     <input v-model="chatInput" @keyup.enter="sendCopilotMessage" type="text"
-                        placeholder="Ask Copilot: 'What if green coffee increases +15%?'..."
+                        placeholder="Ask Copilot..."
                         class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600 focus:bg-white transition" />
                     <button @click="sendCopilotMessage"
-                        class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition">
+                        class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition shrink-0">
                         Submit
                     </button>
                 </div>
             </div>
 
-            <!-- 2. SMART STOCK FORECASTING CARD (FR-0333 - FR-0345) -->
-            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-                <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+            <!-- 2. SMART STOCK FORECASTING CARD -->
+            <div class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+                <div
+                    class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-3 border-b border-slate-100">
                     <div>
                         <h3 class="text-xs font-bold text-slate-900">Smart Stock Forecasting</h3>
                         <p class="text-[10px] text-slate-400">Predictive safety stock & 30-day runout model</p>
                     </div>
-                    <!-- Tab Filter (FR-0334 - FR-0336) -->
-                    <div class="flex p-1 bg-slate-100 rounded-xl text-[10px] font-bold">
+                    <!-- Tab Filter -->
+                    <div class="flex p-1 bg-slate-100 rounded-xl text-[10px] font-bold self-start sm:self-auto">
                         <button @click="forecastTab = 'Products'; fetchForecasting()"
                             :class="['px-3 py-1 rounded-lg transition', forecastTab === 'Products' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500']">Products</button>
                         <button @click="forecastTab = 'Materials'; fetchForecasting()"
@@ -220,9 +219,9 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Table Component (FR-0340) -->
-                <div class="overflow-hidden border border-slate-100 rounded-2xl">
-                    <table class="w-full text-left border-collapse text-xs">
+                <!-- Table Component (Responsive Wrapper) -->
+                <div class="overflow-x-auto border border-slate-100 rounded-2xl">
+                    <table class="w-full text-left border-collapse text-xs min-w-[500px]">
                         <thead>
                             <tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase">
                                 <th class="py-2.5 px-3">NAME & CODE</th>
@@ -241,25 +240,24 @@ onMounted(() => {
                                 <td class="py-2.5 px-3 font-extrabold text-slate-900">{{ item.currentStock }}</td>
                                 <td class="py-2.5 px-3"><span
                                         class="px-2 py-0.5 bg-indigo-50 text-indigo-600 font-bold rounded-md text-[10px]">{{
-                                            item.recommendation }}</span></td>
+                                        item.recommendation }}</span></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 3. COST & MARGIN SIMULATOR CARD (FR-0346 - FR-0352) -->
-            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+            <!-- 3. COST & MARGIN SIMULATOR CARD -->
+            <div class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
                 <div class="flex justify-between items-center pb-3 border-b border-slate-100">
                     <div>
                         <h3 class="text-xs font-bold text-slate-900">Cost & Margin Simulator</h3>
                         <p class="text-[10px] text-slate-400">Interactive what-if decision scenario engine</p>
                     </div>
-                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-bold">Live
-                        Calculator</span>
+                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-bold">Live</span>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Material Price Increase
                             (%)</label>
@@ -274,7 +272,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Comparison Cards (FR-0349) -->
+                <!-- Comparison Cards -->
                 <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-[9px] font-bold text-slate-400 uppercase">CURRENT MARGIN</p>
@@ -287,15 +285,15 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- 4. PRODUCTION & WASTE ANALYSIS CARD (FR-0353 - FR-0356) -->
-            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+            <!-- 4. PRODUCTION & WASTE ANALYSIS CARD -->
+            <div class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
                 <div class="flex justify-between items-center pb-3 border-b border-slate-100">
                     <div>
                         <h3 class="text-xs font-bold text-slate-900">Production & Waste Analysis</h3>
                         <p class="text-[10px] text-slate-400">Material efficiency & scrap diagnostics</p>
                     </div>
-                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]">94.2%
-                        Efficiency</span>
+                    <span
+                        class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full font-bold text-[10px]">94.2%</span>
                 </div>
 
                 <div class="space-y-2">
@@ -307,14 +305,14 @@ onMounted(() => {
                         </div>
                         <span
                             :class="['px-2 py-0.5 rounded-md font-bold text-[10px]', b.status === 'Optimal' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600']">{{
-                                b.status }}</span>
+                            b.status }}</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 5. PRODUCT TREND & BASKET ANALYSIS CARD (FR-0357 - FR-0360) -->
-        <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+        <!-- 5. PRODUCT TREND & BASKET ANALYSIS CARD -->
+        <div class="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
             <div class="flex justify-between items-center pb-3 border-b border-slate-100">
                 <div>
                     <h3 class="text-xs font-bold text-slate-900">Product Trend & Basket Analysis</h3>
@@ -322,8 +320,8 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div class="overflow-hidden border border-slate-100 rounded-2xl">
-                <table class="w-full text-left border-collapse text-xs">
+            <div class="overflow-x-auto border border-slate-100 rounded-2xl">
+                <table class="w-full text-left border-collapse text-xs min-w-[650px]">
                     <thead>
                         <tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase">
                             <th class="py-3 px-4">PRIMARY ITEM</th>
@@ -342,7 +340,7 @@ onMounted(() => {
                             <td class="py-3 px-4">
                                 <span
                                     class="px-2.5 py-1 bg-slate-100 text-slate-700 font-bold rounded-full text-[10px] border border-slate-200">{{
-                                        row.strategyBadge }}</span>
+                                    row.strategyBadge }}</span>
                             </td>
                         </tr>
                     </tbody>

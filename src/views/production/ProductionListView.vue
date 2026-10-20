@@ -1,14 +1,18 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import BaseInput from '@/components/common/BaseInput.vue'
 
 // --- STATE DATA ---
 const productionBatches = ref([])
 const isLoading = ref(false)
 
-// --- FILTERS (FR-0232 & FR-0233) ---
+// --- FILTERS & PAGINATION PARAMS ---
 const search = ref('')
-const dateFilter = ref('All Dates')
+const currentPage = ref(1)
+const totalPages = ref(1)
+const totalItems = ref(0)
+const limit = ref(10)
 
 // --- TOAST NOTIFICATION STATE ---
 const toast = ref({ show: false, message: '', type: 'success' })
@@ -18,20 +22,26 @@ const showToast = (message, type = 'success') => {
     setTimeout(() => { toast.value.show = false }, 3000)
 }
 
-// --- FETCH PRODUCTION BATCHES (FR-0230 & FR-0231) ---
-const fetchProductionBatches = async () => {
+// --- FETCH PRODUCTION BATCHES (GET /api/production) ---
+const fetchProductionBatches = async (page = 1) => {
     isLoading.value = true
+    currentPage.value = page
     try {
         const token = localStorage.getItem('token')
-        let url = `${import.meta.env.VITE_APP_API_URL}/api/production?limit=50`
-        if (search.value) url += `&search=${search.value}`
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/production?page=${currentPage.value}&limit=${limit.value}`
+
+        if (search.value) url += `&search=${encodeURIComponent(search.value)}`
 
         const res = await axios.get(url, {
             headers: { Authorization: `Bearer ${token}` }
         })
 
         if (res.data.status) {
-            productionBatches.value = res.data.data
+            productionBatches.value = res.data.data || []
+            if (res.data.meta) {
+                totalPages.value = Number(res.data.meta.totalPages) || 1
+                totalItems.value = Number(res.data.meta.total) || productionBatches.value.length
+            }
         }
     } catch (err) {
         showToast(err.response?.data?.message || 'Gagal memuat log produksi', 'error')
@@ -40,112 +50,104 @@ const fetchProductionBatches = async () => {
     }
 }
 
-onMounted(fetchProductionBatches)
+const handleFilterChange = () => {
+    fetchProductionBatches(1)
+}
 
-const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
+const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toISOString().split('T')[0]
+}
+
+onMounted(() => {
+    fetchProductionBatches(1)
+})
 </script>
 
 <template>
-    <div class="space-y-6 text-left relative">
-        <!-- Toast Notification -->
+    <div class="space-y-6 text-left relative px-4 sm:px-6 py-4">
+        <!-- Toast Alert -->
         <div v-if="toast.show" :class="[
-            'fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300',
+            'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 max-w-sm',
             toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
         ]">
             <span>{{ toast.type === 'success' ? '✓' : '✕' }}</span>
             <span>{{ toast.message }}</span>
         </div>
 
-        <!-- Filter & Action Bar (Presisi Mockup FR-0232 - FR-0234) -->
+        <!-- Filter & Action Bar -->
         <div
-            class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+            class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
             <!-- Search Field -->
-            <div class="relative w-full sm:w-96">
-                <input v-model="search" @input="fetchProductionBatches" type="text"
-                    placeholder="Search batch code, finished product, or raw material..."
-                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600 focus:bg-white transition" />
-                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+            <div class="w-full sm:w-80">
+                <BaseInput v-model="search" placeholder="Search batch code or description..."
+                    @input="handleFilterChange" />
             </div>
 
-            <!-- Filters & Add Button -->
+            <!-- Add Button -->
             <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-                <select v-model="dateFilter"
-                    class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-indigo-600">
-                    <option value="All Dates">All Dates</option>
-                    <option value="This Month">This Month</option>
-                </select>
-
                 <router-link to="/production/create"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-200 transition flex items-center gap-1.5 shrink-0">
+                    class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-200 transition flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto">
                     <span>+</span> Log Production Batch
                 </router-link>
             </div>
         </div>
 
-        <!-- Production Batches Data Table (Presisi Mockup FR-0231) -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <table class="w-full text-left border-collapse">
+        <!-- Production Batches Data Table -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                     <tr
                         class="border-b border-slate-100 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        <th class="py-3.5 px-4">BATCH CODE</th>
-                        <th class="py-3.5 px-4">PRODUCTION DATE</th>
-                        <th class="py-3.5 px-4">FINISHED PRODUCT OUTPUT</th>
-                        <th class="py-3.5 px-4">YIELD QTY</th>
-                        <th class="py-3.5 px-4">UNIT</th>
-                        <th class="py-3.5 px-4">RAW MATERIAL CONSUMED</th>
-                        <th class="py-3.5 px-4 text-right">ACTIONS</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">BATCH CODE</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">PRODUCTION DATE</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">YIELD QTY</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">UNIT</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">DESCRIPTION</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">NOTES</th>
+                        <th class="py-3.5 px-4 text-right whitespace-nowrap">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs">
                     <tr v-if="isLoading">
-                        <td colspan="9" class="py-8 text-center text-slate-400">Loading production log...</td>
+                        <td colspan="7" class="py-8 text-center text-slate-400">Loading production log...</td>
                     </tr>
                     <tr v-else-if="productionBatches.length === 0">
-                        <td colspan="9" class="py-8 text-center text-slate-400">Belum ada catatan batch produksi.</td>
+                        <td colspan="7" class="py-8 text-center text-slate-400">Belum ada catatan batch produksi.</td>
                     </tr>
                     <tr v-for="batch in productionBatches" :key="batch.id" class="hover:bg-slate-50/50 transition">
                         <!-- Batch Code -->
-                        <td class="py-3.5 px-4 font-bold text-indigo-600">
-                            {{ batch.code || `BATCH-2026-${batch.id.substring(0, 2)}` }}
+                        <td class="py-3.5 px-4 font-bold text-indigo-600 whitespace-nowrap">
+                            {{ batch.code }}
                         </td>
 
                         <!-- Production Date -->
-                        <td class="py-3.5 px-4 text-slate-600 font-medium">
-                            {{ new Date(batch.createdAt || batch.productionDate).toISOString().split('T')[0] }}
-                        </td>
-
-                        <!-- Finished Product Output -->
-                        <td class="py-3.5 px-4 font-bold text-slate-800">
-                            {{ batch.product?.name || batch.productName || 'Signature Vanilla Latte' }}
+                        <td class="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">
+                            {{ formatDate(batch.date || batch.createdAt) }}
                         </td>
 
                         <!-- Yield Qty -->
-                        <td class="py-3.5 px-4 font-extrabold text-emerald-600">
+                        <td class="py-3.5 px-4 font-extrabold text-emerald-600 whitespace-nowrap">
                             +{{ batch.qtyResult }}
                         </td>
 
                         <!-- Unit -->
-                        <td class="py-3.5 px-4 text-slate-500 font-medium">
-                            {{ batch.unit?.name || batch.unit || 'cup' }}
+                        <td class="py-3.5 px-4 text-slate-500 font-medium whitespace-nowrap">
+                            {{ batch.unit?.name || 'Pcs' }}
                         </td>
 
-                        <!-- Raw Material Consumed -->
-                        <td class="py-3.5 px-4">
-                            <p class="font-bold text-slate-800 leading-tight">
-                                {{ batch.material?.name || batch.materialName || 'Ethiopian Yirgacheffe Raw Beans' }}
-                            </p>
-                            <p class="text-[10px] text-slate-400 font-mono mt-0.5">
-                                {{ batch.material?.code || batch.materialCode || 'MAT-101' }}
-                            </p>
+                        <!-- Description -->
+                        <td class="py-3.5 px-4 text-slate-700 font-medium whitespace-nowrap">
+                            {{ batch.description || '-' }}
                         </td>
 
-                        <!-- Actions (FR-0235) -->
-                        <td class="py-3.5 px-4 text-right">
+                        <!-- Notes -->
+                        <td class="py-3.5 px-4 text-slate-500 whitespace-nowrap">
+                            {{ batch.notes || '-' }}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
                             <router-link :to="`/production/edit/${batch.id}`"
                                 class="px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs transition inline-flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor"
@@ -159,6 +161,26 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Pagination Connected to API Meta -->
+            <div
+                class="px-4 sm:px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
+                <p>Showing {{ productionBatches.length }} of {{ totalItems }} production batches</p>
+                <div class="flex items-center gap-2">
+                    <button :disabled="currentPage === 1 || isLoading" @click="fetchProductionBatches(currentPage - 1)"
+                        class="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 font-medium transition">
+                        Previous
+                    </button>
+
+                    <span class="font-semibold text-slate-700">Page {{ currentPage }} of {{ totalPages }}</span>
+
+                    <button :disabled="currentPage >= totalPages || isLoading"
+                        @click="fetchProductionBatches(currentPage + 1)"
+                        class="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 font-medium transition">
+                        Next
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>

@@ -1,15 +1,29 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import BaseInput from '@/components/common/BaseInput.vue'
+import BaseSelect from '@/components/common/BaseSelect.vue'
 
 // --- STATE DATA ---
 const materials = ref([])
 const isLoading = ref(false)
 
-// --- FILTERS (FR-0206 & FR-0207) ---
+// --- FILTERS & PAGINATION PARAMS (Sesuai Query Params Endpoint) ---
 const search = ref('')
-const selectedType = ref('All Types')
-const selectedDate = ref('All Dates')
+const selectedType = ref('All')
+const startDate = ref('')
+const endDate = ref('')
+const currentPage = ref(1)
+const totalPages = ref(1)
+const totalItems = ref(0)
+const limit = ref(10)
+
+// Options untuk Filter Tipe Material
+const typeOptions = [
+    { id: 'All', name: 'All Types' },
+    { id: 'baku', name: 'Bahan Baku (baku)' },
+    { id: 'penolong', name: 'Bahan Penolong (penolong)' }
+]
 
 // --- TOAST NOTIFICATION STATE ---
 const toast = ref({ show: false, message: '', type: 'success' })
@@ -19,21 +33,27 @@ const showToast = (message, type = 'success') => {
     setTimeout(() => { toast.value.show = false }, 3000)
 }
 
-// --- FETCH MATERIALS (FR-0204 & FR-0205) ---
-const fetchMaterials = async () => {
+// --- FETCH MATERIALS (GET /api/materials) ---
+const fetchMaterials = async (page = 1) => {
     isLoading.value = true
+    currentPage.value = page
     try {
         const token = localStorage.getItem('token')
-        let url = `${import.meta.env.VITE_APP_API_URL}/api/materials?limit=50`
-        if (search.value) url += `&search=${search.value}`
-        if (selectedType.value !== 'All Types') url += `&type=${selectedType.value}`
+        let url = `${import.meta.env.VITE_APP_API_URL}/api/materials?page=${currentPage.value}&limit=${limit.value}`
+
+        if (search.value) url += `&search=${encodeURIComponent(search.value)}`
+        if (selectedType.value !== 'All') url += `&type=${selectedType.value}`
 
         const res = await axios.get(url, {
             headers: { Authorization: `Bearer ${token}` }
         })
 
         if (res.data.status) {
-            materials.value = res.data.data
+            materials.value = res.data.data || []
+            if (res.data.meta) {
+                totalPages.value = Number(res.data.meta.totalPages) || 1
+                totalItems.value = Number(res.data.meta.total) || materials.value.length
+            }
         }
     } catch (err) {
         showToast(err.response?.data?.message || 'Gagal memuat daftar bahan baku', 'error')
@@ -42,7 +62,17 @@ const fetchMaterials = async () => {
     }
 }
 
-// --- TOGGLE STATUS (FR-0210) ---
+const handleFilterChange = () => {
+    fetchMaterials(1)
+}
+
+const resetFilters = () => {
+    search.value = ''
+    selectedType.value = 'All'
+    fetchMaterials(1)
+}
+
+// --- TOGGLE STATUS ---
 const toggleStatus = async (item) => {
     try {
         const token = localStorage.getItem('token')
@@ -62,83 +92,71 @@ const toggleStatus = async (item) => {
     }
 }
 
-onMounted(fetchMaterials)
+onMounted(() => {
+    fetchMaterials(1)
+})
 </script>
 
 <template>
-    <div class="space-y-6 text-left relative">
+    <div class="space-y-6 text-left relative px-4 sm:px-6 py-4">
         <!-- Toast Alert -->
         <div v-if="toast.show" :class="[
-            'fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300',
+            'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 max-w-sm',
             toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
         ]">
             <span>{{ toast.type === 'success' ? '✓' : '✕' }}</span>
             <span>{{ toast.message }}</span>
         </div>
 
-        <!-- Filter & Action Bar (Presisi Mockup FR-0206 - FR-0208) -->
-        <div
-            class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
-            <!-- Search Field -->
-            <div class="relative w-full sm:w-96">
-                <input v-model="search" @input="fetchMaterials" type="text"
-                    placeholder="Search material code or name..."
-                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600 focus:bg-white transition" />
-                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
+        <!-- Filter & Action Bar Responsive -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+            <div class="flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-4">
+                <!-- Search Field -->
+                <div class="w-full xl:w-80">
+                    <BaseInput v-model="search" placeholder="Search material code or name..."
+                        @input="handleFilterChange" />
+                </div>
 
-            <!-- Filters & Add Button -->
-            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-                <select v-model="selectedType" @change="fetchMaterials"
-                    class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-indigo-600">
-                    <option value="All Types">All Types</option>
-                    <option value="Raw Material">Raw Material</option>
-                    <option value="Auxiliary Material">Auxiliary Material</option>
-                    <option value="Packaging">Packaging</option>
-                </select>
+                <!-- Type Filter -->
+                <div class="w-full sm:w-48">
+                    <BaseSelect v-model="selectedType" :options="typeOptions" valueKey="id" labelKey="name"
+                        @change="handleFilterChange" />
+                </div>
 
-                <select v-model="selectedDate"
-                    class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-indigo-600">
-                    <option value="All Dates">All Dates</option>
-                    <option value="This Month">This Month</option>
-                </select>
-
+                <!-- Add Button -->
                 <router-link to="/materials/create"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-200 transition flex items-center gap-1.5 shrink-0">
+                    class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-200 transition flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto">
                     <span>+</span> Add Material
                 </router-link>
             </div>
         </div>
 
-        <!-- Materials Data Table (Presisi Mockup FR-0205) -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <table class="w-full text-left border-collapse">
+        <!-- Materials Data Table -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                     <tr
                         class="border-b border-slate-100 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        <th class="py-3.5 px-4">MATERIAL CODE</th>
-                        <th class="py-3.5 px-4">MATERIAL NAME</th>
-                        <th class="py-3.5 px-4">MATERIAL CLASSIFICATION</th>
-                        <th class="py-3.5 px-4">DESCRIPTION & NOTES</th>
-                        <th class="py-3.5 px-4">STATUS</th>
-                        <th class="py-3.5 px-4 text-right">ACTIONS</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">MATERIAL CODE</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">MATERIAL NAME</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">CLASSIFICATION</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">STOCK</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">DESCRIPTION & NOTES</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">STATUS</th>
+                        <th class="py-3.5 px-4 text-right whitespace-nowrap">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs">
                     <tr v-if="isLoading">
-                        <td colspan="6" class="py-8 text-center text-slate-400">Loading materials catalog...</td>
+                        <td colspan="7" class="py-8 text-center text-slate-400">Loading materials catalog...</td>
                     </tr>
                     <tr v-else-if="materials.length === 0">
-                        <td colspan="6" class="py-8 text-center text-slate-400">Belum ada bahan baku atau material
+                        <td colspan="7" class="py-8 text-center text-slate-400">Belum ada bahan baku atau material
                             terdaftar.</td>
                     </tr>
                     <tr v-for="mat in materials" :key="mat.id" class="hover:bg-slate-50/50 transition">
                         <!-- Material Code -->
-                        <td class="py-3.5 px-4 font-bold text-indigo-600">
+                        <td class="py-3.5 px-4 font-bold text-indigo-600 whitespace-nowrap">
                             {{ mat.code || `MAT-${mat.id.substring(0, 3).toUpperCase()}` }}
                         </td>
 
@@ -147,21 +165,26 @@ onMounted(fetchMaterials)
                             {{ mat.name }}
                         </td>
 
-                        <!-- Material Classification -->
-                        <td class="py-3.5 px-4">
+                        <!-- Material Classification Badge -->
+                        <td class="py-3.5 px-4 whitespace-nowrap">
                             <span
-                                class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold border border-slate-200/60">
-                                {{ mat.type || mat.classification || 'Raw Material' }}
+                                class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold border border-slate-200/60 capitalize">
+                                {{ mat.type || 'baku' }}
                             </span>
+                        </td>
+
+                        <!-- Stock -->
+                        <td class="py-3.5 px-4 font-extrabold text-slate-900 whitespace-nowrap">
+                            {{ mat.stock ?? 0 }}
                         </td>
 
                         <!-- Description & Notes -->
                         <td class="py-3.5 px-4 text-slate-500 font-medium line-clamp-1 max-w-xs">
-                            {{ mat.description || mat.notes || 'Grade 1 washed green beans for specialty espresso                            roast.' }}
+                            {{ mat.description || '-' }}
                         </td>
 
-                        <!-- Status Toggle (FR-0210) -->
-                        <td class="py-3.5 px-4">
+                        <!-- Status Toggle -->
+                        <td class="py-3.5 px-4 whitespace-nowrap">
                             <button @click="toggleStatus(mat)" :class="[
                                 'px-2.5 py-1 rounded-full text-[10px] font-bold border transition inline-flex items-center gap-1',
                                 mat.isActive !== false
@@ -172,8 +195,8 @@ onMounted(fetchMaterials)
                             </button>
                         </td>
 
-                        <!-- Actions (FR-0209) -->
-                        <td class="py-3.5 px-4 text-right">
+                        <!-- Actions -->
+                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
                             <router-link :to="`/materials/edit/${mat.id}`"
                                 class="px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs transition inline-flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor"
@@ -187,6 +210,25 @@ onMounted(fetchMaterials)
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Pagination Connected to API Meta -->
+            <div
+                class="px-4 sm:px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
+                <p>Showing {{ materials.length }} of {{ totalItems }} materials</p>
+                <div class="flex items-center gap-2">
+                    <button :disabled="currentPage === 1 || isLoading" @click="fetchMaterials(currentPage - 1)"
+                        class="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 font-medium transition">
+                        Previous
+                    </button>
+
+                    <span class="font-semibold text-slate-700">Page {{ currentPage }} of {{ totalPages }}</span>
+
+                    <button :disabled="currentPage >= totalPages || isLoading" @click="fetchMaterials(currentPage + 1)"
+                        class="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 font-medium transition">
+                        Next
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>

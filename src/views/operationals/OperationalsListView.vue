@@ -1,12 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import BaseInput from '@/components/common/BaseInput.vue'
+import { formatCurrency } from '@/helpers/formatCurrency'
 
 // --- STATE DATA ---
 const expenses = ref([])
 const isLoading = ref(false)
 
-// --- FILTERS & PAGINATION (queryOperationalSchema) ---
+// --- FILTERS & PAGINATION PARAMS ---
 const search = ref('')
 const startDate = ref('')
 const endDate = ref('')
@@ -26,9 +28,10 @@ const showToast = (message, type = 'success') => {
     setTimeout(() => { toast.value.show = false }, 3000)
 }
 
-// --- FETCH OPERATIONALS ---
-const fetchExpenses = async () => {
+// --- FETCH OPERATIONALS (GET /api/operationals) ---
+const fetchExpenses = async (page = 1) => {
     isLoading.value = true
+    currentPage.value = page
     try {
         const token = localStorage.getItem('token')
         const params = {
@@ -46,10 +49,10 @@ const fetchExpenses = async () => {
         })
 
         if (res.data.status) {
-            expenses.value = res.data.data
+            expenses.value = res.data.data || []
             if (res.data.meta) {
-                totalPages.value = res.data.meta.totalPages
-                totalItems.value = res.data.meta.total
+                totalPages.value = Number(res.data.meta.totalPages) || 1
+                totalItems.value = Number(res.data.meta.total) || expenses.value.length
             }
         }
     } catch (err) {
@@ -60,15 +63,14 @@ const fetchExpenses = async () => {
 }
 
 const handleFilterChange = () => {
-    currentPage.value = 1
-    fetchExpenses()
+    fetchExpenses(1)
 }
 
-const changePage = (page) => {
-    if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page
-        fetchExpenses()
-    }
+const resetFilters = () => {
+    search.value = ''
+    startDate.value = ''
+    endDate.value = ''
+    fetchExpenses(1)
 }
 
 const resolveImageUrl = (path) => {
@@ -81,69 +83,76 @@ const openPreviewModal = (path) => {
     previewImageUrl.value = resolveImageUrl(path)
 }
 
-onMounted(fetchExpenses)
+const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toISOString().split('T')[0]
+}
 
-const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
+onMounted(() => {
+    fetchExpenses(1)
+})
 </script>
 
 <template>
-    <div class="space-y-6 text-left relative">
-        <!-- Toast Notification -->
+    <div class="space-y-6 text-left relative px-4 sm:px-6 py-4">
+        <!-- Toast Alert -->
         <div v-if="toast.show" :class="[
-            'fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300',
+            'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 max-w-sm',
             toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
         ]">
             <span>{{ toast.type === 'success' ? '✓' : '✕' }}</span>
             <span>{{ toast.message }}</span>
         </div>
 
-        <!-- Filter & Action Bar -->
-        <div
-            class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
-            <!-- Search & Date Range Filter -->
-            <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
-                <div class="relative w-full sm:w-64">
-                    <input v-model="search" @input="handleFilterChange" type="text"
-                        placeholder="Cari kode atau judul..."
-                        class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600 focus:bg-white transition" />
-                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+        <!-- Filter & Action Bar Responsive -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+            <div class="flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-4">
+                <!-- Search Input -->
+                <div class="w-full xl:w-80">
+                    <BaseInput v-model="search" placeholder="Search by code or title..." @input="handleFilterChange" />
                 </div>
 
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <span class="text-xs font-semibold text-slate-400 shrink-0">Dari:</span>
-                    <input v-model="startDate" @change="handleFilterChange" type="date"
-                        class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:border-indigo-600" />
+                <!-- Date Range Filters Group -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <div class="w-full sm:w-36">
+                            <BaseInput v-model="startDate" type="date" placeholder="Start Date"
+                                @change="handleFilterChange" />
+                        </div>
+                        <span class="text-slate-400 text-xs">-</span>
+                        <div class="w-full sm:w-36">
+                            <BaseInput v-model="endDate" type="date" placeholder="End Date"
+                                @change="handleFilterChange" />
+                        </div>
+                    </div>
 
-                    <span class="text-xs font-semibold text-slate-400 shrink-0">Sampai:</span>
-                    <input v-model="endDate" @change="handleFilterChange" type="date"
-                        class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:border-indigo-600" />
+                    <button v-if="startDate || endDate || search" @click="resetFilters"
+                        class="px-2.5 py-2 text-xs text-slate-500 hover:text-slate-800 underline transition shrink-0">
+                        Reset
+                    </button>
                 </div>
+
+                <!-- Add Button -->
+                <router-link to="/operationals/create"
+                    class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-200 transition flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto">
+                    <span>+</span> Log Expense
+                </router-link>
             </div>
-
-            <!-- Add Button -->
-            <router-link to="/operationals/create"
-                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-200 transition flex items-center gap-1.5 shrink-0">
-                <span>+</span> Log Expense
-            </router-link>
         </div>
 
         <!-- Operating Expenses Data Table -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <table class="w-full text-left border-collapse">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                     <tr
                         class="border-b border-slate-100 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        <th class="py-3.5 px-4">EXPENSE CODE</th>
-                        <th class="py-3.5 px-4">EXPENSE TITLE</th>
-                        <th class="py-3.5 px-4">DATE</th>
-                        <th class="py-3.5 px-4">AMOUNT</th>
-                        <th class="py-3.5 px-4">RECEIPT PROOF</th>
-                        <th class="py-3.5 px-4">NOTES</th>
-                        <th class="py-3.5 px-4 text-right">ACTIONS</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">EXPENSE CODE</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">EXPENSE TITLE</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">DATE</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">AMOUNT</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">RECEIPT PROOF</th>
+                        <th class="py-3.5 px-4 whitespace-nowrap">NOTES</th>
+                        <th class="py-3.5 px-4 text-right whitespace-nowrap">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs">
@@ -157,7 +166,7 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
                     </tr>
                     <tr v-for="exp in expenses" :key="exp.id" class="hover:bg-slate-50/50 transition">
                         <!-- Expense Code -->
-                        <td class="py-3.5 px-4 font-bold text-indigo-600">
+                        <td class="py-3.5 px-4 font-bold text-indigo-600 whitespace-nowrap">
                             {{ exp.code }}
                         </td>
 
@@ -167,17 +176,17 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
                         </td>
 
                         <!-- Date -->
-                        <td class="py-3.5 px-4 text-slate-600 font-medium">
-                            {{ new Date(exp.date).toISOString().split('T')[0] }}
+                        <td class="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">
+                            {{ formatDate(exp.date) }}
                         </td>
 
                         <!-- Amount -->
-                        <td class="py-3.5 px-4 font-extrabold text-red-600">
+                        <td class="py-3.5 px-4 font-extrabold text-red-600 whitespace-nowrap">
                             {{ formatCurrency(exp.amount) }}
                         </td>
 
                         <!-- Receipt Proof -->
-                        <td class="py-3.5 px-4">
+                        <td class="py-3.5 px-4 whitespace-nowrap">
                             <div v-if="exp.paymentProof" class="flex items-center gap-2">
                                 <img :src="resolveImageUrl(exp.paymentProof)" alt="Proof Thumbnail"
                                     class="w-8 h-8 object-cover rounded-lg border border-slate-200 cursor-pointer"
@@ -196,7 +205,7 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
                         </td>
 
                         <!-- Actions -->
-                        <td class="py-3.5 px-4 text-right space-x-1.5">
+                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
                             <router-link :to="`/operationals/edit/${exp.id}`"
                                 class="px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs transition inline-flex items-center gap-1">
                                 ✏️ Edit
@@ -206,18 +215,21 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
                 </tbody>
             </table>
 
-            <!-- Pagination Bar -->
-            <div v-if="totalPages > 1"
-                class="p-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
-                <span>Menampilkan Halaman {{ currentPage }} dari {{ totalPages }} (Total {{ totalItems }} data)</span>
-                <div class="flex items-center gap-1">
-                    <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
-                        class="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 font-medium">
-                        Sebelumnya
+            <!-- Pagination Connected to API Meta -->
+            <div
+                class="px-4 sm:px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
+                <p>Showing {{ expenses.length }} of {{ totalItems }} operational expenses</p>
+                <div class="flex items-center gap-2">
+                    <button :disabled="currentPage === 1 || isLoading" @click="fetchExpenses(currentPage - 1)"
+                        class="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 font-medium transition">
+                        Previous
                     </button>
-                    <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
-                        class="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 font-medium">
-                        Selanjutnya
+
+                    <span class="font-semibold text-slate-700">Page {{ currentPage }} of {{ totalPages }}</span>
+
+                    <button :disabled="currentPage >= totalPages || isLoading" @click="fetchExpenses(currentPage + 1)"
+                        class="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 font-medium transition">
+                        Next
                     </button>
                 </div>
             </div>
@@ -227,11 +239,11 @@ const formatCurrency = (val) => `$${Number(val || 0).toFixed(2)}`
         <div v-if="previewImageUrl"
             class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
             @click.self="previewImageUrl = null">
-            <div class="bg-white p-4 rounded-3xl max-w-lg w-full space-y-4 text-center relative shadow-2xl">
+            <div class="bg-white p-5 rounded-3xl max-w-lg w-full space-y-4 text-center relative shadow-2xl my-auto">
                 <div class="flex justify-between items-center pb-2 border-b border-slate-100">
                     <h3 class="text-sm font-bold text-slate-800">Bukti Pembayaran / Nota</h3>
                     <button @click="previewImageUrl = null"
-                        class="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+                        class="text-slate-400 hover:text-slate-600 font-bold p-1">&times;</button>
                 </div>
                 <div class="max-h-[70vh] overflow-auto rounded-xl border border-slate-100">
                     <img :src="previewImageUrl" alt="Receipt Full Preview"
