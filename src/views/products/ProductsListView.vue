@@ -32,6 +32,7 @@ const categoryOptions = computed(() => [
 // --- CATEGORY DRAWER STATE ---
 const showCategoryDrawer = ref(false)
 const categoryForm = ref({ id: '', name: '', code: '' })
+const lastCategoryCode = ref()
 const isEditCategory = ref(false)
 const isSavingCategory = ref(false)
 
@@ -44,6 +45,23 @@ const showToast = (message, type = 'success') => {
 }
 
 // --- FETCH CATEGORIES (category-list.json) ---
+const fetchLastCategoryCode = async () => {
+    try {
+        const token = localStorage.getItem('token')
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/code/generate`, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+                type: "category"
+            }
+        })
+        if (res.data.status) {
+            categoryForm.value.code = res.data.data || null
+        }
+    } catch (err) {
+        console.error('Failed to load categories:', err)
+    }
+}
+
 const fetchCategories = async () => {
     try {
         const token = localStorage.getItem('token')
@@ -194,7 +212,7 @@ onMounted(() => {
                         @change="handleFilterChange" />
                 </div>
 
-                <button @click="showCategoryDrawer = true"
+                <button @click="async () => { showCategoryDrawer = true; await fetchLastCategoryCode() }"
                     class="px-3.5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 shrink-0">
                     Manage Categories
                 </button>
@@ -323,24 +341,25 @@ onMounted(() => {
                             <button @click="showCategoryDrawer = false"
                                 class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
                         </div>
-    
+
                         <!-- Category Form -->
                         <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl mb-6 space-y-3">
-                            <p class="text-xs font-bold text-slate-800">{{ isEditCategory ? 'Edit Category' : 'Add New                             Category' }}</p>
-    
-                            <BaseInput v-model="categoryForm.name" label="Category Name" placeholder="e.g. Makanan"
-                                required />
-    
+                            <p class="text-xs font-bold text-slate-800">{{ isEditCategory ? 'Edit Category' : 'Add New Category' }}</p>
+                            
                             <BaseInput v-model="categoryForm.code" label="Category Code / Prefix"
-                                placeholder="e.g. FOOD01, CAT-01" />
-    
+                                placeholder="e.g. FOOD01, CAT-01" disabled />
+
+                            <BaseInput v-model="categoryForm.name" label="Category Name" placeholder="e.g. Makanan"
+                            required />
+
                             <BaseButton :loading="isSavingCategory" @click="handleSaveCategory" class="!py-2 !text-xs">
                                 + Save Category
                             </BaseButton>
                         </div>
-    
+
                         <!-- Registered Categories -->
-                        <p class="text-xs font-bold text-slate-800 mb-3">Registered Categories ({{ categories.length }})</p>
+                        <p class="text-xs font-bold text-slate-800 mb-3">Registered Categories ({{ categories.length }})
+                        </p>
                         <div class="space-y-2">
                             <div v-for="cat in categories" :key="cat.id"
                                 class="p-3 bg-white border border-slate-200/80 rounded-2xl flex justify-between items-center gap-2">
@@ -349,15 +368,15 @@ onMounted(() => {
                                     <p class="text-[10px] text-slate-400 font-mono">Code: {{ cat.code || '-' }}</p>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs shrink-0">
-                                    <button @click="isEditCategory = true; categoryForm = { ...cat }"
+                                    <!-- <button @click="isEditCategory = true; categoryForm = { ...cat }"
                                         class="text-indigo-600 font-semibold p-1">Edit</button>
                                     <button @click="deleteCategory(cat.id)"
-                                        class="text-red-500 font-semibold p-1">Delete</button>
+                                        class="text-red-500 font-semibold p-1">Delete</button> -->
                                 </div>
                             </div>
                         </div>
                     </div>
-    
+
                     <button @click="showCategoryDrawer = false"
                         class="w-full py-2.5 border border-slate-200 text-slate-600 font-semibold text-xs rounded-xl hover:bg-slate-50 mt-6">
                         Close Drawer

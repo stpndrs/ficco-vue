@@ -13,7 +13,7 @@ const validationErrors = ref({})
 const imagePreview = ref('')
 
 const form = ref({
-    code: 'EXP-105',
+    code: '',
     title: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
@@ -29,25 +29,37 @@ const handleFileChange = (event) => {
     }
 }
 
+const fetchLastOperationalCode = async () => {
+    try {
+        const token = localStorage.getItem('token')
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/code/generate`, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+                type: "operational"
+            }
+        })
+        if (res.data.status) {
+            form.value.code = res.data.data || null
+        }
+    } catch (err) {
+        console.error('Failed to load categories:', err)
+    }
+}
+
+onMounted(async () => {
+    await fetchLastOperationalCode()
+})
+
 const handleSave = async () => {
     errorMessage.value = ''
     validationErrors.value = {}
-
-    if (!form.value.title || !form.value.amount) {
-        errorMessage.value = 'Judul pengeluaran dan jumlah (amount) wajib diisi!'
-        return
-    }
-
-    if (Number(form.value.amount) <= 0) {
-        errorMessage.value = 'Jumlah pengeluaran (amount) harus lebih besar dari 0!'
-        return
-    }
 
     isSubmitting.value = true
     try {
         const token = localStorage.getItem('token')
         const formData = new FormData()
 
+        formData.append('code', form.value.code)
         formData.append('title', form.value.title)
         formData.append('amount', Number(form.value.amount))
         formData.append('date', form.value.date)

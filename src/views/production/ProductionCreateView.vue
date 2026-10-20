@@ -17,7 +17,7 @@ const errorMessage = ref('')
 const validationErrors = ref({})
 
 const form = ref({
-    code: 'BATCH-2026-03',
+    code: '',
     date: new Date().toISOString().split('T')[0],
     productId: '',
     qtyResult: 30,
@@ -31,6 +31,27 @@ const form = ref({
         }
     ],
     notes: ''
+})
+
+const fetchLastProductionCode = async () => {
+    try {
+        const token = localStorage.getItem('token')
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/code/generate`, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+                type: "production"
+            }
+        })
+        if (res.data.status) {
+            form.value.code = res.data.data || null
+        }
+    } catch (err) {
+        console.error('Failed to load categories:', err)
+    }
+}
+
+onMounted(async () => {
+    await fetchLastProductionCode()
 })
 
 const fetchDropdowns = async () => {
@@ -231,11 +252,11 @@ const handleSave = async () => {
                                     <div v-if="getMaterialDetail(line.materialId)"
                                         class="text-[10px] text-slate-400 mt-1 space-y-0.5">
                                         <p>Kode: <span class="font-semibold text-slate-700">{{
-                                                getMaterialDetail(line.materialId).code }}</span> | Tipe: <span
+                                            getMaterialDetail(line.materialId).code }}</span> | Tipe: <span
                                                 class="font-semibold text-slate-700">{{
-                                                getMaterialDetail(line.materialId).type }}</span></p>
+                                                    getMaterialDetail(line.materialId).type }}</span></p>
                                         <p>Stok Tersedia: <span class="font-bold text-slate-800">{{
-                                                getMaterialDetail(line.materialId).stock }}</span></p>
+                                            getMaterialDetail(line.materialId).stock }}</span></p>
                                     </div>
                                 </div>
 

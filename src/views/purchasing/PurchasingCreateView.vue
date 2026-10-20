@@ -17,6 +17,7 @@ const validationMessage = ref({})
 
 const formHeader = ref({
 	supplierId: '',
+	code: '',
 	date: '',
 	paymentProof: ''
 })
@@ -43,11 +44,13 @@ const removeItem = (index) => {
 const fetchDropdowns = async () => {
 	try {
 		const token = localStorage.getItem('token')
-		const [supRes, matRes] = await Promise.all([
+		const [purCode, supRes, matRes] = await Promise.all([
+			axios.get(`${import.meta.env.VITE_APP_API_URL}/api/code/generate`, { headers: { Authorization: `Bearer ${token}` }, params: { type: "purchasing" } }),
 			axios.get(`${import.meta.env.VITE_APP_API_URL}/api/purchasing/suppliers`, { headers: { Authorization: `Bearer ${token}` } }),
 			axios.get(`${import.meta.env.VITE_APP_API_URL}/api/materials`, { headers: { Authorization: `Bearer ${token}` } }),
 		])
 
+		formHeader.value.code = purCode.data.data
 		suppliers.value = supRes.data.data || []
 		materials.value = matRes.data.data || []
 	} catch (err) {
@@ -93,6 +96,7 @@ const handleSave = async () => {
 
 		const payload = {
 			supplierId: formHeader.value.supplierId || null,
+			code: formHeader.value.code,
 			date: formHeader.value.date,
 			paymentProof: formHeader.value.paymentProof || null,
 			items: items.value.map(item => ({
@@ -158,6 +162,9 @@ const getItemError = (keyword) => {
 
 			<!-- Main Transaction Details -->
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+				<BaseInput v-model="formHeader.code" type="text" label="Order Code" :error="getFieldError('code')"
+					required disabled />
+
 				<BaseInput v-model="formHeader.date" type="date" label="Order Date" :error="getFieldError('date')"
 					required />
 

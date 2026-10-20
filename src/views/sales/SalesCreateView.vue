@@ -18,6 +18,7 @@ const cart = ref([])
 
 // Form input awal kosongan
 const form = ref({
+    code: '',
     customerName: '',
     customerPhone: '',
     paymentMethod: 'cash',
@@ -41,16 +42,25 @@ const showToast = (message, type = 'success') => {
 const fetchData = async () => {
     try {
         const token = localStorage.getItem('token')
-        const [catRes, prodRes] = await Promise.all([
+        const [saleCode, catRes, prodRes] = await Promise.all([
+            axios.get(`${import.meta.env.VITE_APP_API_URL}/api/code/generate`, { headers: { Authorization: `Bearer ${token}` }, params: { type: "sale" } }),
             axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products/categories`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`${import.meta.env.VITE_APP_API_URL}/api/products?limit=100`, { headers: { Authorization: `Bearer ${token}` } })
         ])
+        if (saleCode.data.status) form.value.code = saleCode.data.data
         if (catRes.data.status) categories.value = catRes.data.data || []
         if (prodRes.data.status) products.value = prodRes.data.data || []
     } catch (err) {
         showToast('Gagal memuat data katalog produk', 'error')
     }
 }
+
+// category ..
+// materials ..
+// productions - ..
+// purchasings - ..
+// sales -..
+// operationals - ..
 
 onMounted(fetchData)
 
@@ -157,6 +167,8 @@ const handlePlaceOrder = async (overrideStatus = null) => {
                 Customer & Transaction Details
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <BaseInput v-model="form.code" label="Customer Full Name *" placeholder="Transaction code"
+                    :error="validationMessage?.code?.[0] || null" required />
                 <BaseInput v-model="form.customerName" label="Customer Full Name *"
                     placeholder="Masukkan nama pelanggan" :error="validationMessage?.customerName?.[0] || null"
                     required />
@@ -271,7 +283,7 @@ const handlePlaceOrder = async (overrideStatus = null) => {
                     <!-- Total Calculations -->
                     <div class="space-y-1.5 pt-4 border-t border-slate-100 mt-4 text-xs">
                         <div class="flex justify-between text-slate-500"><span>Subtotal</span><span>{{
-                                formatCurrency(subtotal) }}</span></div>
+                            formatCurrency(subtotal) }}</span></div>
                         <div
                             class="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-100">
                             <span>Total</span><span class="text-indigo-600">{{ formatCurrency(subtotal) }}</span>

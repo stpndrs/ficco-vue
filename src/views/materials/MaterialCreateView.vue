@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -18,10 +18,31 @@ const materialTypes = [
 ]
 
 const form = ref({
-    code: 'MAT-105',
+    code: '',
     name: '',
     type: '',
     description: ''
+})
+
+const fetchLastMaterialCode = async () => {
+    try {
+        const token = localStorage.getItem('token')
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/code/generate`, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+                type: "material"
+            }
+        })
+        if (res.data.status) {
+            form.value.code = res.data.data || null
+        }
+    } catch (err) {
+        console.error('Failed to load categories:', err)
+    }
+}
+
+onMounted(async () => {
+    await fetchLastMaterialCode()
 })
 
 const handleSave = async () => {
