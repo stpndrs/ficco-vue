@@ -59,8 +59,9 @@ onMounted(fetchUsers)
 
 <template>
     <div class="space-y-6 text-left relative">
+        <!-- Toast Alert -->
         <div v-if="toast.show" :class="[
-            'fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300',
+            'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 max-w-sm',
             toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
         ]">
             <span>{{ toast.type === 'success' ? '✓' : '✕' }}</span>
