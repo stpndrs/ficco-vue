@@ -2,38 +2,41 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import BaseInput from '@/components/common/BaseInput.vue'
+import BaseButton from '@/components/common/BaseButton.vue'
 
 const router = useRouter()
 const isSubmitting = ref(false)
+const errorMessage = ref('')
+const validationMessage = ref({})
 
 const form = ref({
-    id: '',
-    umkmName: 'Artisan Coffee Roasters & Cafe',
-    umkmAddress: '104 Pike Street, Suite 400, Seattle, WA 98101, United States',
-    ownerName: 'Jordan Miles',
-    ownerPhone: '+1 (206) 555-0192',
-    email: 'jordan@artisancoffee.com',
-    password: '',
-    profileImageFile: null,
-    profileImageUrlText: 'image.csnimakw'
+    userId: '',
+    companyName: '',
+    companyAddress: '',
+    ownerName: '',
+    ownerPhone: '',
+    email: '',
+    password: ''
 })
 
 const fetchProfile = async () => {
     try {
         const token = localStorage.getItem('token')
-        const userId = localStorage.getItem('userId') || '1'
-        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/user/profile/${userId}`, {
+        const res = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/users/profile`, {
             headers: { Authorization: `Bearer ${token}` }
         })
 
         if (res.data.status) {
-            const d = res.data.data
-            form.value.id = d.id || userId
-            form.value.umkmName = d.umkmName || form.value.umkmName
-            form.value.umkmAddress = d.umkmAddress || form.value.umkmAddress
-            form.value.ownerName = d.ownerName || d.user?.name || form.value.ownerName
-            form.value.ownerPhone = d.ownerPhone || d.user?.phone || form.value.ownerPhone
-            form.value.email = d.email || d.user?.email || form.value.email
+            const profile = res.data.data?.profile || {}
+            const user = res.data.data?.user || {}
+
+            form.value.userId = user.id || ''
+            form.value.companyName = profile.umkmName || profile.companyName || ''
+            form.value.companyAddress = profile.umkmAddress || profile.companyAddress || ''
+            form.value.ownerName = profile.ownerName || user.name || ''
+            form.value.ownerPhone = profile.ownerPhone || user.phone || ''
+            form.value.email = user.email || ''
         }
     } catch (err) {
         console.error('Failed to load profile for edit:', err)
@@ -42,40 +45,33 @@ const fetchProfile = async () => {
 
 onMounted(fetchProfile)
 
-const handleFileChange = (e) => {
-    if (e.target.files.length) {
-        form.value.profileImageFile = e.target.files[0]
-    }
-}
-
 const handleSaveChanges = async () => {
     isSubmitting.value = true
+    errorMessage.value = ''
+    validationMessage.value = {}
+
     try {
         const token = localStorage.getItem('token')
 
-        // MENGGUNAKAN FORMDATA SESUAI INSTRUKSI
-        const formData = new FormData()
-        formData.append('id', form.value.id || localStorage.getItem('userId') || '1')
-        formData.append('umkmName', form.value.umkmName)
-        formData.append('umkmAddress', form.value.umkmAddress)
-        formData.append('ownerName', form.value.ownerName)
-        formData.append('ownerPhone', form.value.ownerPhone)
-        formData.append('email', form.value.email)
+        // Payload JSON sesuai spesifikasi APIdog Request
+        const payload = {
+            userId: form.value.userId,
+            companyName: form.value.companyName,
+            companyAddress: form.value.companyAddress,
+            ownerName: form.value.ownerName,
+            ownerPhone: form.value.ownerPhone,
+            email: form.value.email
+        }
 
+        // Tambahkan password jika pengguna memasukkannya
         if (form.value.password) {
-            formData.append('password', form.value.password)
+            payload.password = form.value.password
         }
 
-        if (form.value.profileImageFile) {
-            formData.append('profileImage', form.value.profileImageFile)
-        } else {
-            formData.append('profileImageUrlText', form.value.profileImageUrlText)
-        }
-
-        const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/user/profile/edit`, formData, {
+        const res = await axios.put(`${import.meta.env.VITE_APP_API_URL}/api/users/profile`, payload, {
             headers: {
                 Authorization: `Bearer ${token}`,
-                'Content-Type': 'multipart/form-data'
+                'Content-Type': 'application/json'
             }
         })
 
@@ -83,7 +79,8 @@ const handleSaveChanges = async () => {
             router.push('/profile')
         }
     } catch (err) {
-        alert(err.response?.data?.message || 'Gagal memperbarui profil bisnis')
+        errorMessage.value = err.response?.data?.message || 'Gagal memperbarui profil bisnis.'
+        validationMessage.value = err.response?.data?.errors || {}
     } finally {
         isSubmitting.value = false
     }
@@ -91,18 +88,22 @@ const handleSaveChanges = async () => {
 </script>
 
 <template>
-    <div class="max-w-3xl mx-auto text-left">
-        <div class="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-            <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+    <div class="max-w-3xl mx-auto text-left px-4 sm:px-6 py-4 space-y-4">
+        <!-- Alert Error Global -->
+        <div v-if="errorMessage"
+            class="p-3.5 rounded-xl bg-red-50 text-red-600 text-xs font-medium border border-red-200 flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{{ errorMessage }}</span>
+        </div>
+
+        <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100">
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="text-lg font-bold text-slate-900">Update Business & Founder Profile</h2>
-                        <span
-                            class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-bold uppercase">EDIT
-                            PROFILE</span>
+                        <h2 class="text-base font-bold text-slate-900">Update Business & Founder Profile</h2>
+                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[10px] font-bold uppercase">EDIT PROFILE</span>
                     </div>
-                    <p class="text-xs text-slate-400 mt-0.5">Update corporate entity information, primary headquarters,
-                        or master credentials.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Update corporate entity information or master workspace credentials.</p>
                 </div>
                 <router-link to="/profile"
                     class="px-3.5 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-semibold">
@@ -111,47 +112,55 @@ const handleSaveChanges = async () => {
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Registered Business Name *</label>
-                    <input v-model="form.umkmName" type="text"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
-                </div>
+                <BaseInput
+                    v-model="form.companyName"
+                    label="Registered Business Name *"
+                    placeholder="e.g. PT Tech Solusindo Terbaru"
+                    :error="validationMessage?.companyName?.[0] || null"
+                    required
+                />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Founder Full Name *</label>
-                    <input v-model="form.ownerName" type="text"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
-                </div>
+                <BaseInput
+                    v-model="form.ownerName"
+                    label="Founder Full Name *"
+                    placeholder="e.g. Stevan Andreas"
+                    :error="validationMessage?.ownerName?.[0] || null"
+                    required
+                />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Headquarters & Store Address</label>
-                    <input v-model="form.umkmAddress" type="text"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
-                </div>
+                <BaseInput
+                    v-model="form.companyAddress"
+                    label="Headquarters & Store Address"
+                    placeholder="e.g. Jl. Basuki Rahmat No. 12, Surabaya"
+                    :error="validationMessage?.companyAddress?.[0] || null"
+                />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Founder Contact Phone</label>
-                    <input v-model="form.ownerPhone" type="text"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
-                </div>
+                <BaseInput
+                    v-model="form.ownerPhone"
+                    label="Founder Contact Phone"
+                    placeholder="e.g. 081234567899"
+                    :error="validationMessage?.ownerPhone?.[0] || null"
+                />
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Edit Photo Profile / File</label>
-                    <input type="file" @change="handleFileChange"
-                        class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" />
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Corporate Workspace Email *</label>
-                    <input v-model="form.email" type="email"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
+                <div class="sm:col-span-2">
+                    <BaseInput
+                        v-model="form.email"
+                        label="Corporate Workspace Email *"
+                        type="email"
+                        placeholder="stevan.new@example.com"
+                        :error="validationMessage?.email?.[0] || null"
+                        required
+                    />
                 </div>
 
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Update Password (Optional)</label>
-                    <input v-model="form.password" type="password"
-                        placeholder="Leave empty to maintain existing password"
-                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-600" />
+                    <BaseInput
+                        v-model="form.password"
+                        label="Update Password (Optional)"
+                        type="password"
+                        placeholder="Biarkan kosong jika tidak ingin mengubah password"
+                        :error="validationMessage?.password?.[0] || null"
+                    />
                 </div>
             </div>
 
@@ -160,10 +169,9 @@ const handleSaveChanges = async () => {
                     class="px-5 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs rounded-xl">
                     Cancel
                 </router-link>
-                <button @click="handleSaveChanges" :disabled="isSubmitting"
-                    class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-200 transition">
+                <BaseButton :loading="isSubmitting" @click="handleSaveChanges" class="!w-auto !px-6 !py-2.5 !text-xs">
                     ✓ Save Profile Changes
-                </button>
+                </BaseButton>
             </div>
         </div>
     </div>
